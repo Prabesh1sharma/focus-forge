@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { users, roomMemberships, rooms, focusSessions, notifications } from "@/lib/db/schema";
-import { eq, and, desc, gte, sql } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { getUserStats } from "@/lib/stats/calculations";
 import { getLocalDateString, formatDuration } from "@/lib/utils";
 import Link from "next/link";
@@ -17,6 +17,8 @@ import {
   ChevronRight,
   Target,
 } from "lucide-react";
+
+export const instant = false;
 
 export const metadata = { title: "Dashboard" };
 
@@ -155,7 +157,7 @@ export default async function DashboardPage() {
       <div className="card" style={{ marginBottom: 24, padding: 20 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
           <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-secondary)" }}>
-            Today's goal progress
+            Today&apos;s goal progress
           </span>
           <span style={{ fontSize: 13, color: "var(--text-muted)" }}>
             {formatDuration(data.todaySeconds)} / {dbUser.dailyGoalMinutes}m

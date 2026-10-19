@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getUserStats, getHeatmapData } from "@/lib/stats/calculations";
+import { getUserStats } from "@/lib/stats/calculations";
 
 // GET /api/stats — get current user's statistics
-export async function GET(req: NextRequest) {
+export async function GET() {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

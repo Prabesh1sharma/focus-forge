@@ -1,22 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { roomInvitations, roomMemberships, rooms, users, notifications } from "@/lib/db/schema";
+import { roomInvitations, roomMemberships, rooms } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { createNotification } from "@/lib/notifications";
 
-// POST /api/rooms/[id]/invitations/[inviteId]/respond
+// POST /api/invitations/[inviteId]/respond
 // Body: { action: "accept" | "decline" }
 export async function POST(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string; inviteId: string }> }
+  { params }: { params: Promise<{ inviteId: string }> }
 ) {
   const session = await auth();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const { id: roomId, inviteId } = await params;
+  const { inviteId } = await params;
   const userId = session.user.id;
 
   try {
@@ -27,15 +27,15 @@ export async function POST(
       return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
 
-    // Find the invitation
+    // Find the invitation addressed to the current user; room is derived
+    // server-side from the invitation record.
     const [invitation] = await db
       .select()
       .from(roomInvitations)
       .where(
         and(
           eq(roomInvitations.id, inviteId),
-          eq(roomInvitations.inviteeId, userId),
-          eq(roomInvitations.roomId, roomId)
+          eq(roomInvitations.inviteeId, userId)
         )
       )
       .limit(1);
@@ -43,6 +43,8 @@ export async function POST(
     if (!invitation) {
       return NextResponse.json({ error: "Invitation not found" }, { status: 404 });
     }
+
+    const roomId = invitation.roomId;
 
     if (invitation.status !== "pending") {
       return NextResponse.json(
@@ -70,8 +72,7 @@ export async function POST(
       return NextResponse.json({ status: "declined" });
     }
 
-    // Accept: create membership transactionally
-    // Check not already a member (concurrent request guard)
+    // Accept: guard against concurrent/duplicate submissions
     const [existingMembership] = await db
       .select()
       .from(roomMemberships)
@@ -96,7 +97,6 @@ export async function POST(
       .set({ status: "accepted", respondedAt: new Date() })
       .where(eq(roomInvitations.id, inviteId));
 
-    // Get room name for notification
     const [room] = await db
       .select({ name: rooms.name, slug: rooms.slug })
       .from(rooms)

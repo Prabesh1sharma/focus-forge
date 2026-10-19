@@ -2,11 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { focusSessions, users } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { computeActualFocusSeconds } from "@/lib/timer/engine";
 import { updateDailyAggregate } from "@/lib/stats/calculations";
 import { getLocalDateString } from "@/lib/utils";
-import { createNotification } from "@/lib/notifications";
 
 // POST /api/sessions/[id]/complete
 export async function POST(
@@ -52,8 +51,18 @@ export async function POST(
       const [updated] = await db
         .update(focusSessions)
         .set({ status: "completed", endedAt: new Date(), updatedAt: new Date() })
-        .where(eq(focusSessions.id, sessionId))
+        .where(
+          and(
+            eq(focusSessions.id, sessionId),
+            eq(focusSessions.userId, userId),
+            // Atomic transition guard: only one request can flip the status
+            sql`${focusSessions.status} IN ('active', 'paused')`
+          )
+        )
         .returning();
+      if (!updated) {
+        return NextResponse.json({ session: focusSession, alreadyCompleted: true });
+      }
       return NextResponse.json({ session: updated });
     }
 
@@ -84,12 +93,23 @@ export async function POST(
           pausedDurationSeconds: pausedSecs,
           updatedAt: new Date(),
         })
-        .where(and(eq(focusSessions.id, sessionId), eq(focusSessions.userId, userId)))
+        .where(
+          and(
+            eq(focusSessions.id, sessionId),
+            eq(focusSessions.userId, userId),
+            sql`${focusSessions.status} IN ('active', 'paused')`
+          )
+        )
         .returning();
+      if (!updated) {
+        return NextResponse.json({ session: focusSession, alreadyCompleted: true });
+      }
       return NextResponse.json({ session: updated, tooShort: true });
     }
 
-    // Update session status
+    // Update session status. The status guard makes this a single-winner
+    // transition: concurrent completions get zero rows back and must not
+    // touch the daily aggregate below.
     const [updated] = await db
       .update(focusSessions)
       .set({
@@ -103,11 +123,14 @@ export async function POST(
         and(
           eq(focusSessions.id, sessionId),
           eq(focusSessions.userId, userId),
-          // Extra guard: only complete if still active/paused
-          // (prevents concurrent duplicate completions)
+          sql`${focusSessions.status} IN ('active', 'paused')`
         )
       )
       .returning();
+
+    if (!updated) {
+      return NextResponse.json({ session: focusSession, alreadyCompleted: true });
+    }
 
     // Update daily aggregate
     const [dbUser] = await db

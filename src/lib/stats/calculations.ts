@@ -1,10 +1,6 @@
 import { db } from "@/lib/db";
-import {
-  focusSessions,
-  dailyFocusAggregates,
-  users,
-} from "@/lib/db/schema";
-import { eq, and, gte, lte, desc, sql, sum, count } from "drizzle-orm";
+import { focusSessions, dailyFocusAggregates } from "@/lib/db/schema";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { getLocalDateString } from "@/lib/utils";
 
 export interface UserStats {
@@ -30,7 +26,6 @@ export async function getUserStats(
   dailyGoalMinutes: number = 120
 ): Promise<UserStats> {
   const today = getLocalDateString(timezone);
-  const now = new Date();
 
   // Week start (Sunday)
   const todayDate = new Date(today + "T00:00:00Z");
@@ -55,7 +50,6 @@ export async function getUserStats(
 
   const todayAgg = aggregateMap.get(today);
   const todayFocusSeconds = todayAgg?.totalFocusSeconds ?? 0;
-  const completedSessionsToday = todayAgg?.completedSessions ?? 0;
 
   // Week total
   const weekFocusSeconds = aggregates

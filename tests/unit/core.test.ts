@@ -12,7 +12,6 @@ import {
   formatDuration,
   formatCountdown,
   generateSlug,
-  getLocalDateString,
   validateSessionDuration,
   getHeatmapLevel,
 } from "@/lib/utils";

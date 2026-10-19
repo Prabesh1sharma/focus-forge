@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { focusSessions, users } from "@/lib/db/schema";
+import { focusSessions } from "@/lib/db/schema";
 import { eq, and, sql } from "drizzle-orm";
 import { startSessionSchema } from "@/lib/validations/sessions";
 

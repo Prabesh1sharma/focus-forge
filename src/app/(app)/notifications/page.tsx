@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { Bell, Check, CheckCheck, Users, UserPlus, Award } from "lucide-react";
 
@@ -18,15 +19,12 @@ interface Notification {
 }
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [markingAll, setMarkingAll] = useState(false);
   const [respondingTo, setRespondingTo] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, []);
 
   async function fetchNotifications() {
     try {
@@ -38,6 +36,10 @@ export default function NotificationsPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
 
   async function markAllRead() {
     setMarkingAll(true);
@@ -58,10 +60,10 @@ export default function NotificationsPage() {
     setUnreadCount((c) => Math.max(0, c - 1));
   }
 
-  async function respondToInvitation(notifId: string, invitationId: string, roomId: string, action: "accept" | "decline") {
+  async function respondToInvitation(notifId: string, invitationId: string, action: "accept" | "decline") {
     setRespondingTo(notifId);
     try {
-      const res = await fetch(`/api/rooms/${roomId}/invitations/${invitationId}/respond`, {
+      const res = await fetch(`/api/invitations/${invitationId}/respond`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action }),
@@ -71,7 +73,7 @@ export default function NotificationsPage() {
         await fetchNotifications();
         if (action === "accept") {
           const data = await res.json();
-          if (data.roomSlug) window.location.href = `/rooms/${data.roomSlug}`;
+          if (data.roomSlug) router.push(`/rooms/${data.roomSlug}`);
         }
       }
     } finally {
@@ -187,9 +189,7 @@ export default function NotificationsPage() {
                         className="btn-primary"
                         disabled={respondingTo === n.id}
                         onClick={() => {
-                          // Extract roomId from relatedEntityId (invitation id) - need room context
-                          // For now, fetch from API
-                          respondToInvitation(n.id, n.relatedEntityId!, extractRoomId(n), "accept");
+                          respondToInvitation(n.id, n.relatedEntityId!, "accept");
                         }}
                         style={{ fontSize: 13, padding: "7px 16px" }}
                       >
@@ -198,7 +198,7 @@ export default function NotificationsPage() {
                       <button
                         className="btn-secondary"
                         disabled={respondingTo === n.id}
-                        onClick={() => respondToInvitation(n.id, n.relatedEntityId!, extractRoomId(n), "decline")}
+                        onClick={() => respondToInvitation(n.id, n.relatedEntityId!, "decline")}
                         style={{ fontSize: 13, padding: "7px 16px" }}
                       >
                         Decline
@@ -215,11 +215,3 @@ export default function NotificationsPage() {
   );
 }
 
-// Helper — extract room ID from action URL for invitation response
-function extractRoomId(n: Notification): string {
-  // actionUrl pattern: /notifications (stored), need to look up invitation
-  // For invitations, the relatedEntityId IS the invitation ID
-  // Room ID needs to come from the action URL or we need to store it separately
-  // Simple workaround: store room ID in relatedEntityId for invitations
-  return n.actorId ?? ""; // fallback — the invitation respond API takes invitationId + roomId
-}

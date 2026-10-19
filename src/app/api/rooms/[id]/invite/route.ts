@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { rooms, roomMemberships, roomInvitations, users, notifications } from "@/lib/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { rooms, roomMemberships, roomInvitations, users } from "@/lib/db/schema";
+import { eq, and } from "drizzle-orm";
 import { inviteUserSchema } from "@/lib/validations/rooms";
 import { createNotification } from "@/lib/notifications";
 

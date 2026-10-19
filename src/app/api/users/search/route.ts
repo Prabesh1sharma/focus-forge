@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { eq, ilike, and, ne } from "drizzle-orm";
+import { ilike, and, ne } from "drizzle-orm";
 
 // GET /api/users/search?q=username
 export async function GET(req: NextRequest) {

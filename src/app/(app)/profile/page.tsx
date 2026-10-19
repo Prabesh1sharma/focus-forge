@@ -8,6 +8,8 @@ import { formatDuration, formatDate, getInitials } from "@/lib/utils";
 import HeatmapCalendar from "@/components/stats/HeatmapCalendar";
 import { Calendar, Flame, Timer, Award, Target } from "lucide-react";
 
+export const instant = false;
+
 export const metadata = { title: "Profile" };
 
 export default async function ProfilePage() {

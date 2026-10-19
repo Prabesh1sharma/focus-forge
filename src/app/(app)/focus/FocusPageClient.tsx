@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useTimer } from "@/hooks/useTimer";
-import { formatCountdown, formatDuration } from "@/lib/utils";
+import { formatCountdown } from "@/lib/utils";
 import {
   Play,
   Pause,
   Square,
   SkipForward,
   Settings,
-  Timer,
   Coffee,
   Brain,
   CheckCircle,
@@ -29,7 +28,6 @@ interface TimerSettings {
 
 interface FocusPageClientProps {
   initialSettings: TimerSettings;
-  userId: string;
 }
 
 type TimerMode = "focus" | "short_break" | "long_break";
@@ -52,7 +50,7 @@ const MODE_ICONS: Record<TimerMode, React.ReactNode> = {
   long_break: <Coffee size={18} />,
 };
 
-export default function FocusPageClient({ initialSettings, userId }: FocusPageClientProps) {
+export default function FocusPageClient({ initialSettings }: FocusPageClientProps) {
   const [settings, setSettings] = useState<TimerSettings>(initialSettings);
   const [currentMode, setCurrentMode] = useState<TimerMode>("focus");
   const [sessionCount, setSessionCount] = useState(0);
@@ -111,13 +109,13 @@ export default function FocusPageClient({ initialSettings, userId }: FocusPageCl
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
   const strokeOffset = CIRCUMFERENCE - (displayProgress / 100) * CIRCUMFERENCE;
 
-  async function handleStart() {
+  const handleStart = useCallback(async () => {
     await timer.startSession({
       sessionType: currentMode,
       label: label || undefined,
       plannedDurationSeconds: plannedSeconds,
     });
-  }
+  }, [timer, currentMode, label, plannedSeconds]);
 
   async function handleSaveSettings() {
     setSavingSettings(true);

@@ -4,10 +4,12 @@ import { rooms, roomMemberships, users, focusSessions } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Trophy, Settings2, Activity, Timer, UserPlus } from "lucide-react";
+import { Users, Trophy, Activity, Timer } from "lucide-react";
 import { formatDuration, formatDate, getInitials } from "@/lib/utils";
 import RoomLeaderboard from "./RoomLeaderboard";
 import InviteUserModal from "./InviteUserModal";
+
+export const instant = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

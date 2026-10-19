@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { getInitials, getAvatarUrl } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 import {
   LayoutDashboard,
   Timer,

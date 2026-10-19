@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/config";
 import Link from "next/link";
 
+// Auth (cookies) + DB reads block this route; render at request time.
+export const instant = false;
+
 export default async function LandingPage() {
   const session = await auth();
   if (session) redirect("/dashboard");

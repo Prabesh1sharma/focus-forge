@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { formatDuration, getInitials } from "@/lib/utils";
-import { Trophy } from "lucide-react";
 
 interface LeaderboardEntry {
   userId: string;

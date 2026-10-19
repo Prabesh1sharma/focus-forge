@@ -3,6 +3,9 @@ import { auth } from "@/lib/auth/config";
 import Sidebar from "@/components/layout/Sidebar";
 import MobileNav from "@/components/layout/MobileNav";
 
+// Session check reads cookies; render at request time.
+export const instant = false;
+
 export default async function AppLayout({
   children,
 }: {

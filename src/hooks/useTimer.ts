@@ -80,15 +80,25 @@ export function useTimer(options: UseTimerOptions = {}) {
     if (intervalRef.current) clearInterval(intervalRef.current);
 
     if (activeSession && activeSession.status === "active") {
-      // Run immediately
-      tick();
+      // Recalculate once right away, then every second. The immediate
+      // recalculation is deferred so the effect body stays side-effect free.
+      const initialId = setTimeout(tick, 0);
       intervalRef.current = setInterval(tick, 1000);
-    } else if (activeSession && activeSession.status === "paused") {
-      // Show static remaining time
+      return () => {
+        clearTimeout(initialId);
+        if (intervalRef.current) clearInterval(intervalRef.current);
+      };
+    }
+
+    if (activeSession && activeSession.status === "paused") {
+      // Show static remaining time for a paused session
       const state = toTimerState(activeSession);
       const calc = calculateRemaining(state);
-      setRemaining(calc.remainingSeconds);
-      setProgress(calc.progressPercent);
+      const pausedId = setTimeout(() => {
+        setRemaining(calc.remainingSeconds);
+        setProgress(calc.progressPercent);
+      }, 0);
+      return () => clearTimeout(pausedId);
     }
 
     return () => {

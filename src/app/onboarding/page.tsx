@@ -35,7 +35,7 @@ export default function OnboardingPage() {
   const [step, setStep] = useState(1);
   const [selectedGoal, setSelectedGoal] = useState<"reading" | "studying" | "deep_work">("deep_work");
   const [dailyGoal, setDailyGoal] = useState(60);
-  const [timezone, setTimezone] = useState(
+  const [timezone] = useState(
     Intl.DateTimeFormat().resolvedOptions().timeZone
   );
   const [saving, setSaving] = useState(false);

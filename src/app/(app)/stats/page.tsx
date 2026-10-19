@@ -8,6 +8,8 @@ import { formatDuration, formatDate } from "@/lib/utils";
 import HeatmapCalendar from "@/components/stats/HeatmapCalendar";
 import { Timer, Flame, Target, TrendingUp, Calendar, Award } from "lucide-react";
 
+export const instant = false;
+
 export const metadata = { title: "Statistics" };
 
 export default async function StatsPage() {
@@ -86,7 +88,7 @@ export default async function StatsPage() {
           </div>
         </div>
         <div className="card">
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 16 }}>Today's Progress</h3>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 16 }}>Today&apos;s Progress</h3>
           <div style={{ marginBottom: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Focus time</span>

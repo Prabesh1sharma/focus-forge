@@ -5,6 +5,8 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import FocusPageClient from "./FocusPageClient";
 
+export const instant = false;
+
 export const metadata = { title: "Focus Timer" };
 
 export default async function FocusPage() {
@@ -29,9 +31,6 @@ export default async function FocusPage() {
   if (!user) redirect("/login");
 
   return (
-    <FocusPageClient
-      initialSettings={user}
-      userId={user.id}
-    />
+    <FocusPageClient initialSettings={user} />
   );
 }

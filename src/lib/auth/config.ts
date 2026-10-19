@@ -9,6 +9,10 @@ import { loginSchema } from "@/lib/validations/auth";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db),
+  // Self-hosted deployments (next start, Docker, reverse proxies) must trust
+  // the request host — Auth.js only auto-trusts when AUTH_URL/AUTH_TRUST_HOST
+  // is set, and NEXTAUTH_URL alone does not enable it.
+  trustHost: true,
   session: {
     strategy: "jwt",
   },
