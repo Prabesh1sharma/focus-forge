@@ -18,8 +18,6 @@ import {
   Target,
 } from "lucide-react";
 
-export const instant = false;
-
 export const metadata = { title: "Dashboard" };
 
 async function getDashboardData(userId: string, timezone: string, dailyGoalMinutes: number) {

@@ -8,8 +8,6 @@ import { formatDuration, formatDate } from "@/lib/utils";
 import HeatmapCalendar from "@/components/stats/HeatmapCalendar";
 import { Timer, Flame, Target, TrendingUp, Calendar, Award } from "lucide-react";
 
-export const instant = false;
-
 export const metadata = { title: "Statistics" };
 
 export default async function StatsPage() {

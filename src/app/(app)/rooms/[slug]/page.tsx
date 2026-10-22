@@ -1,15 +1,13 @@
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { rooms, roomMemberships, users, focusSessions } from "@/lib/db/schema";
-import { eq, and, desc, sql } from "drizzle-orm";
+import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { Users, Trophy, Activity, Timer } from "lucide-react";
 import { formatDuration, formatDate, getInitials } from "@/lib/utils";
 import RoomLeaderboard from "./RoomLeaderboard";
 import InviteUserModal from "./InviteUserModal";
-
-export const instant = false;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -63,43 +61,50 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
     .where(eq(roomMemberships.roomId, room.id))
     .orderBy(roomMemberships.joinedAt);
 
-  // Recent room sessions
-  const recentSessions = await db
-    .select({
-      id: focusSessions.id,
-      userId: focusSessions.userId,
-      label: focusSessions.label,
-      startedAt: focusSessions.startedAt,
-      actualFocusSeconds: focusSessions.actualFocusSeconds,
-      username: users.username,
-      displayName: users.displayName,
-    })
-    .from(focusSessions)
-    .innerJoin(users, eq(users.id, focusSessions.userId))
-    .where(
-      and(
-        eq(focusSessions.roomId, room.id),
-        eq(focusSessions.status, "completed"),
-        eq(focusSessions.sessionType, "focus")
-      )
-    )
-    .orderBy(desc(focusSessions.startedAt))
-    .limit(15);
+  // Get all member user IDs for this room
+  const memberUserIds = members.map((m) => m.userId);
 
-  // Room total focus time
-  const [roomStats] = await db
-    .select({
-      totalSeconds: sql<number>`COALESCE(SUM(${focusSessions.actualFocusSeconds}), 0)`,
-      sessionCount: sql<number>`COUNT(*)`,
-    })
-    .from(focusSessions)
-    .where(
-      and(
-        eq(focusSessions.roomId, room.id),
-        eq(focusSessions.status, "completed"),
-        eq(focusSessions.sessionType, "focus")
-      )
-    );
+  // Recent room sessions - all completed focus sessions by room members (regardless of roomId)
+  const recentSessions = memberUserIds.length > 0
+    ? await db
+        .select({
+          id: focusSessions.id,
+          userId: focusSessions.userId,
+          label: focusSessions.label,
+          startedAt: focusSessions.startedAt,
+          actualFocusSeconds: focusSessions.actualFocusSeconds,
+          username: users.username,
+          displayName: users.displayName,
+        })
+        .from(focusSessions)
+        .innerJoin(users, eq(users.id, focusSessions.userId))
+        .where(
+          and(
+            eq(focusSessions.status, "completed"),
+            eq(focusSessions.sessionType, "focus"),
+            inArray(focusSessions.userId, memberUserIds)
+          )
+        )
+        .orderBy(desc(focusSessions.startedAt))
+        .limit(15)
+    : [];
+
+  // Room total focus time - sum of all completed focus sessions by room members
+  const [roomStats] = memberUserIds.length > 0
+    ? await db
+        .select({
+          totalSeconds: sql<number>`COALESCE(SUM(${focusSessions.actualFocusSeconds}), 0)`,
+          sessionCount: sql<number>`COUNT(*)`,
+        })
+        .from(focusSessions)
+        .where(
+          and(
+            eq(focusSessions.status, "completed"),
+            eq(focusSessions.sessionType, "focus"),
+            inArray(focusSessions.userId, memberUserIds)
+          )
+        )
+    : [{ totalSeconds: 0, sessionCount: 0 }];
 
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>

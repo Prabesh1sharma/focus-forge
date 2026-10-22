@@ -5,8 +5,6 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import SettingsPageClient from "./SettingsPageClient";
 
-export const instant = false;
-
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage() {

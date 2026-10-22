@@ -5,8 +5,6 @@ import { eq } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import FocusPageClient from "./FocusPageClient";
 
-export const instant = false;
-
 export const metadata = { title: "Focus Timer" };
 
 export default async function FocusPage() {

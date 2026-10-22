@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
 import { focusSessions, roomMemberships, users } from "@/lib/db/schema";
-import { eq, and, gte, sql } from "drizzle-orm";
+import { eq, and, gte, sql, inArray } from "drizzle-orm";
 import { getPeriodStart } from "@/lib/utils";
 
 // GET /api/rooms/[id]/leaderboard?period=today|week|month|all
@@ -53,12 +53,13 @@ export async function GET(
     .innerJoin(users, eq(users.id, roomMemberships.userId))
     .where(eq(roomMemberships.roomId, roomId));
 
-  // For each member, get their focus stats in the period
+  const memberUserIds = members.map((m) => m.userId);
+
+  // For each member, get their focus stats in the period (regardless of roomId)
   const leaderboard = await Promise.all(
     members.map(async (member) => {
       const whereConditions = [
         eq(focusSessions.userId, member.userId),
-        eq(focusSessions.roomId, roomId),
         eq(focusSessions.status, "completed"),
         eq(focusSessions.sessionType, "focus"),
       ];
