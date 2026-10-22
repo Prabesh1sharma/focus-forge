@@ -167,21 +167,23 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {recentSessions.map((s) => (
-                  <div key={s.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--brand-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
-                        {getInitials(s.displayName)}
+                  <Link key={s.id} href={`/u/${s.username}`} style={{ textDecoration: "none", color: "inherit" }}>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--brand-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
+                          {getInitials(s.displayName)}
+                        </div>
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{s.displayName}</span>
+                          {s.label && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>· {s.label}</span>}
+                        </div>
                       </div>
-                      <div>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{s.displayName}</span>
-                        {s.label && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>· {s.label}</span>}
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--brand-400)" }}>{formatDuration(s.actualFocusSeconds)}</div>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{formatDate(s.startedAt, "MMM d")}</div>
                       </div>
                     </div>
-                    <div style={{ textAlign: "right" }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--brand-400)" }}>{formatDuration(s.actualFocusSeconds)}</div>
-                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{formatDate(s.startedAt, "MMM d")}</div>
-                    </div>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
@@ -194,18 +196,20 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {members.map((m) => (
-                <div key={m.userId} style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
-                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--brand-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
-                    {getInitials(m.displayName)}
+                <Link key={m.userId} href={`/u/${m.username}`} style={{ textDecoration: "none" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0" }}>
+                    <div style={{ width: 32, height: 32, borderRadius: "50%", background: "var(--brand-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700, color: "#fff", flexShrink: 0 }}>
+                      {getInitials(m.displayName)}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{m.displayName}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)" }}>@{m.username}</div>
+                    </div>
+                    <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, background: m.role === "owner" ? "rgba(5,150,105,0.15)" : "var(--surface-3)", color: m.role === "owner" ? "var(--brand-400)" : "var(--text-muted)" }}>
+                      {m.role}
+                    </span>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{m.displayName}</div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>@{m.username}</div>
-                  </div>
-                  <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 4, background: m.role === "owner" ? "rgba(5,150,105,0.15)" : "var(--surface-3)", color: m.role === "owner" ? "var(--brand-400)" : "var(--text-muted)" }}>
-                    {m.role}
-                  </span>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

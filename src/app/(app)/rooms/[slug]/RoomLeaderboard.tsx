@@ -1,5 +1,8 @@
 "use client";
 
+"use client";
+
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { formatDuration, getInitials } from "@/lib/utils";
 
@@ -104,9 +107,11 @@ export default function RoomLeaderboard({ roomId }: { roomId: string }) {
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {entry.displayName}
-                </div>
+                <Link href={`/u/${entry.username}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {entry.displayName}
+                  </div>
+                </Link>
                 <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{entry.sessionCount} session{entry.sessionCount !== 1 ? "s" : ""}</div>
               </div>
 
