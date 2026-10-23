@@ -21,7 +21,7 @@ export async function POST(
   try {
     // Check if room exists
     const [room] = await db
-      .select({ id: rooms.id, name: rooms.name, visibility: rooms.visibility, createdBy: rooms.createdBy })
+      .select({ id: rooms.id, name: rooms.name, slug: rooms.slug, visibility: rooms.visibility, createdBy: rooms.createdBy })
       .from(rooms)
       .where(eq(rooms.id, roomId))
       .limit(1);
@@ -30,31 +30,7 @@ export async function POST(
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }
 
-    // If room is public, just add user directly
-    if (room.visibility === "public") {
-      const [existingMembership] = await db
-        .select()
-        .from(roomMemberships)
-        .where(
-          and(
-            eq(roomMemberships.roomId, roomId),
-            eq(roomMemberships.userId, userId)
-          )
-        )
-        .limit(1);
-
-      if (!existingMembership) {
-        await db.insert(roomMemberships).values({
-          roomId,
-          userId,
-          role: "member",
-        });
-      }
-
-      return NextResponse.json({ status: "joined", roomSlug: room.name });
-    }
-
-    // For private rooms, check if already a member
+    // Check if already a member
     const [existingMembership] = await db
       .select()
       .from(roomMemberships)
@@ -87,7 +63,7 @@ export async function POST(
       return NextResponse.json({ error: "Join request already pending" }, { status: 409 });
     }
 
-    // Create join request
+    // Create join request (for both public and private rooms)
     const [joinRequest] = await db
       .insert(roomJoinRequests)
       .values({
@@ -115,7 +91,7 @@ export async function POST(
       .limit(1);
 
     for (const owner of ownerMemberships) {
-      await createNotification({
+await createNotification({
         recipientId: owner.userId,
         actorId: userId,
         type: "room_joined",
@@ -123,7 +99,7 @@ export async function POST(
         message: `${requester?.displayName ?? "Someone"} requested to join "${room.name}"`,
         relatedEntityType: "room_join_request",
         relatedEntityId: joinRequest.id,
-        actionUrl: `/rooms/${room.name}`,
+        actionUrl: `/rooms/${room.slug}`,
       });
     }
 

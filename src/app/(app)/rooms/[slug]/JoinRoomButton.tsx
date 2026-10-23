@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { UserPlus, Check } from "lucide-react";
+import { UserPlus, Check, Clock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface JoinRoomButtonProps {
@@ -11,7 +11,7 @@ interface JoinRoomButtonProps {
 export default function JoinRoomButton({ roomId }: JoinRoomButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [joined, setJoined] = useState(false);
+  const [status, setStatus] = useState<"idle" | "requested">("idle");
 
   async function handleJoin() {
     setLoading(true);
@@ -21,24 +21,24 @@ export default function JoinRoomButton({ roomId }: JoinRoomButtonProps) {
       });
       const data = await res.json();
       if (!res.ok) {
-        alert(data.error || "Failed to join room");
+        alert(data.error || "Failed to send join request");
         return;
       }
-      if (data.status === "joined") {
-        setJoined(true);
+      if (data.status === "requested") {
+        setStatus("requested");
         router.refresh();
       }
     } catch (err) {
-      alert("Failed to join room");
+      alert("Failed to send join request");
     } finally {
       setLoading(false);
     }
   }
 
-  if (joined) {
+  if (status === "requested") {
     return (
       <span className="btn-secondary" style={{ fontSize: 12, padding: "6px 12px" }}>
-        <Check size={14} /> Joined
+        <Clock size={14} /> Request Sent
       </span>
     );
   }
@@ -50,7 +50,7 @@ export default function JoinRoomButton({ roomId }: JoinRoomButtonProps) {
       className="btn-primary"
       style={{ fontSize: 12, padding: "6px 12px" }}
     >
-      {loading ? "Joining…" : <><UserPlus size={14} /> Join</>}
+      {loading ? "Sending…" : <><UserPlus size={14} /> Request Join</>}
     </button>
   );
 }

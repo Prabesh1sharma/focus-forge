@@ -194,7 +194,7 @@ export default function ExploreRoomsPage() {
                     <span className="btn-secondary" style={{ fontSize: 12, padding: "6px 12px", opacity: 0.6 }}>
                       <Search size={12} /> Requested
                     </span>
-                  ) : room.visibility === "private" ? (
+                  ) : (
                     <button
                       onClick={(e) => {
                         e.preventDefault();
@@ -206,10 +206,6 @@ export default function ExploreRoomsPage() {
                     >
                       <Search size={12} /> Request Join
                     </button>
-                  ) : (
-                    <span className="btn-primary" style={{ fontSize: 12, padding: "6px 12px" }}>
-                      <ExternalLink size={12} /> Join
-                    </span>
                   )}
                 </div>
               </div>

@@ -179,7 +179,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             <Timer size={14} /> Start Session
           </Link>}
           {membership && <LeaveRoomButton roomId={room.id} roomName={room.name} userRole={membership.role} />}
-          {!membership && room.visibility === "public" && <JoinRoomButton roomId={room.id} />}
+          {!membership && <JoinRoomButton roomId={room.id} />}
           {isOwnerOrAdmin && <InviteUserModal roomId={room.id} />}
         </div>
       </div>
