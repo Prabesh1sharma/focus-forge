@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { formatDuration, getInitials } from "@/lib/utils";
-import { UserPlus, Lock } from "lucide-react";
+import { Lock } from "lucide-react";
 
 interface LeaderboardEntry {
   userId: string;
@@ -22,7 +22,7 @@ const PERIODS = [
   { key: "all", label: "All Time" },
 ] as const;
 
-export default function RoomLeaderboard({ roomId, roomSlug }: { roomId: string; roomSlug: string }) {
+export default function RoomLeaderboard({ roomId }: { roomId: string }) {
   const [period, setPeriod] = useState<"today" | "week" | "month" | "all">("week");
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,9 +79,7 @@ export default function RoomLeaderboard({ roomId, roomSlug }: { roomId: string; 
         <div style={{ padding: 24, textAlign: "center" }}>
           <Lock size={24} color="var(--text-muted)" style={{ marginBottom: 8 }} />
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>{error}</p>
-          <Link href={`/rooms/${roomSlug}`} className="btn-primary" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-            <UserPlus size={14} /> Join Room
-          </Link>
+          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Go to the room page to request access</p>
         </div>
       ) : data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>

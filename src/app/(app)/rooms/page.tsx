@@ -50,26 +50,6 @@ export default function ExploreRoomsPage() {
     return matchesSearch && matchesFilter;
   });
 
-  async function handleJoinRequest(roomId: string) {
-    try {
-      const res = await fetch(`/api/rooms/${roomId}/join-request`, {
-        method: "POST",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        alert(data.error || "Failed to send join request");
-        return;
-      }
-      setRooms((prev) =>
-        prev.map((r) =>
-          r.id === roomId ? { ...r, hasRequested: true } : r
-        )
-      );
-    } catch (err) {
-      alert("Failed to send join request");
-    }
-  }
-
   if (loading) {
     return (
       <div style={{ maxWidth: 1000, margin: "0 auto", padding: 24 }}>
@@ -186,29 +166,6 @@ export default function ExploreRoomsPage() {
                     </span>
                     <span>Created {formatDate(room.createdAt, "MMM d, yyyy")}</span>
                   </div>
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end", minWidth: 120 }}>
-                  {room.isMember ? (
-                    <span className="btn-secondary" style={{ fontSize: 12, padding: "6px 12px" }}>
-                      <Users size={12} /> Member
-                    </span>
-                  ) : room.hasRequested ? (
-                    <span className="btn-secondary" style={{ fontSize: 12, padding: "6px 12px", opacity: 0.6 }}>
-                      <Search size={12} /> Requested
-                    </span>
-                  ) : (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleJoinRequest(room.id);
-                      }}
-                      className="btn-primary"
-                      style={{ fontSize: 12, padding: "6px 12px" }}
-                    >
-                      <Search size={12} /> Request Join
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
