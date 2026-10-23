@@ -24,6 +24,12 @@ export const invitationStatusEnum = pgEnum("invitation_status", [
   "declined",
   "cancelled",
 ]);
+export const joinRequestStatusEnum = pgEnum("join_request_status", [
+  "pending",
+  "accepted",
+  "declined",
+  "cancelled",
+]);
 export const sessionTypeEnum = pgEnum("session_type", [
   "focus",
   "short_break",
@@ -226,6 +232,35 @@ export const roomInvitations = pgTable(
   ]
 );
 
+// ─── Room Join Requests ────────────────────────────────────────────────────────
+
+export const roomJoinRequests = pgTable(
+  "room_join_requests",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    roomId: text("room_id")
+      .notNull()
+      .references(() => rooms.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    status: joinRequestStatusEnum("status").notNull().default("pending"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    respondedAt: timestamp("responded_at", { mode: "date" }),
+    respondedBy: text("responded_by").references(() => users.id, {
+      onDelete: "set null",
+    }),
+  },
+  (t) => [
+    uniqueIndex("room_join_requests_room_user_idx").on(t.roomId, t.userId),
+    index("room_join_requests_user_idx").on(t.userId),
+    index("room_join_requests_room_idx").on(t.roomId),
+    index("room_join_requests_room_status_idx").on(t.roomId, t.status),
+  ]
+);
+
 // ─── Focus Sessions ───────────────────────────────────────────────────────────
 
 export const focusSessions = pgTable(
@@ -331,6 +366,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   dailyAggregates: many(dailyFocusAggregates),
   sentInvitations: many(roomInvitations, { relationName: "inviter" }),
   receivedInvitations: many(roomInvitations, { relationName: "invitee" }),
+  sentJoinRequests: many(roomJoinRequests, { relationName: "requester" }),
   notifications: many(notifications, { relationName: "recipient" }),
 }));
 
@@ -341,6 +377,7 @@ export const roomsRelations = relations(rooms, ({ one, many }) => ({
   }),
   memberships: many(roomMemberships),
   invitations: many(roomInvitations),
+  joinRequests: many(roomJoinRequests),
   focusSessions: many(focusSessions),
 }));
 
@@ -374,6 +411,25 @@ export const roomInvitationsRelations = relations(
       fields: [roomInvitations.inviteeId],
       references: [users.id],
       relationName: "invitee",
+    }),
+  })
+);
+
+export const roomJoinRequestsRelations = relations(
+  roomJoinRequests,
+  ({ one }) => ({
+    room: one(rooms, {
+      fields: [roomJoinRequests.roomId],
+      references: [rooms.id],
+    }),
+    user: one(users, {
+      fields: [roomJoinRequests.userId],
+      references: [users.id],
+      relationName: "requester",
+    }),
+    responder: one(users, {
+      fields: [roomJoinRequests.respondedBy],
+      references: [users.id],
     }),
   })
 );
@@ -420,6 +476,7 @@ export type Room = typeof rooms.$inferSelect;
 export type NewRoom = typeof rooms.$inferInsert;
 export type RoomMembership = typeof roomMemberships.$inferSelect;
 export type RoomInvitation = typeof roomInvitations.$inferSelect;
+export type RoomJoinRequest = typeof roomJoinRequests.$inferSelect;
 export type FocusSession = typeof focusSessions.$inferSelect;
 export type NewFocusSession = typeof focusSessions.$inferInsert;
 export type DailyFocusAggregate = typeof dailyFocusAggregates.$inferSelect;

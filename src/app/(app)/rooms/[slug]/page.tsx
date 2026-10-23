@@ -1,13 +1,16 @@
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { rooms, roomMemberships, users, focusSessions } from "@/lib/db/schema";
+import { rooms, roomMemberships, users, focusSessions, roomJoinRequests } from "@/lib/db/schema";
 import { eq, and, desc, sql, inArray } from "drizzle-orm";
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Trophy, Activity, Timer } from "lucide-react";
+import { Users, Trophy, Activity, Timer, LogOut, UserPlus, UserCheck, UserX, Clock } from "lucide-react";
 import { formatDuration, formatDate, getInitials } from "@/lib/utils";
 import RoomLeaderboard from "./RoomLeaderboard";
 import InviteUserModal from "./InviteUserModal";
+import JoinRequestsPanel from "./JoinRequestsPanel";
+import LeaveRoomButton from "./LeaveRoomButton";
+import JoinRoomButton from "./JoinRoomButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -106,6 +109,34 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
         )
     : [{ totalSeconds: 0, sessionCount: 0 }];
 
+  // Get pending join requests (for owners/admins)
+  const pendingJoinRequests = isOwnerOrAdmin
+    ? await db
+        .select({
+          id: roomJoinRequests.id,
+          userId: roomJoinRequests.userId,
+          createdAt: roomJoinRequests.createdAt,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(roomJoinRequests)
+        .innerJoin(users, eq(users.id, roomJoinRequests.userId))
+        .where(
+          and(
+            eq(roomJoinRequests.roomId, room.id),
+            eq(roomJoinRequests.status, "pending")
+          )
+        )
+        .orderBy(roomJoinRequests.createdAt)
+        .then((requests) =>
+          requests.map((r) => ({
+            ...r,
+            createdAt: r.createdAt.toISOString(),
+          }))
+        )
+    : [];
+
   return (
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
       {/* Room header */}
@@ -143,10 +174,12 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {membership && <Link href="/focus" className="btn-primary" style={{ fontSize: 13, padding: "8px 14px" }}>
             <Timer size={14} /> Start Session
           </Link>}
+          {membership && <LeaveRoomButton roomId={room.id} roomName={room.name} userRole={membership.role} />}
+          {!membership && room.visibility === "public" && <JoinRoomButton roomId={room.id} />}
           {isOwnerOrAdmin && <InviteUserModal roomId={room.id} />}
         </div>
       </div>
@@ -213,6 +246,11 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
               ))}
             </div>
           </div>
+
+          {/* Join Requests (for owners/admins) */}
+          {isOwnerOrAdmin && pendingJoinRequests.length > 0 && (
+            <JoinRequestsPanel requests={pendingJoinRequests} roomId={room.id} />
+          )}
         </div>
 
         {/* Right: Leaderboard */}
