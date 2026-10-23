@@ -154,7 +154,7 @@ export default function ExploreRoomsPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {filteredRooms.map((room) => (
-            <Link key={room.id} href={`/rooms/${room.slug}`} style={{ textDecoration: "none" }}>
+            <div key={room.id} style={{ textDecoration: "none" }}>
               <div className="card" style={{ display: "flex", gap: 16, padding: 20, transition: "background 0.2s" }}>
                 <div style={{
                   width: 48, height: 48, borderRadius: 12, background: room.avatarColor,
@@ -165,9 +165,11 @@ export default function ExploreRoomsPage() {
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4, flexWrap: "wrap" }}>
-                    <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
-                      {room.name}
-                    </h3>
+                    <Link href={`/rooms/${room.slug}`} style={{ textDecoration: "none", color: "inherit" }}>
+                      <h3 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>
+                        {room.name}
+                      </h3>
+                    </Link>
                     <span style={{ fontSize: 10, background: room.visibility === "private" ? "rgba(168,85,247,0.15)" : "rgba(16,185,129,0.15)", color: room.visibility === "private" ? "var(--purple-400)" : "var(--brand-400)", padding: "2px 8px", borderRadius: 4 }}>
                       {room.visibility === "private" ? <Lock size={10} /> : <ExternalLink size={10} />}
                       {room.visibility}
@@ -209,7 +211,7 @@ export default function ExploreRoomsPage() {
                   )}
                 </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

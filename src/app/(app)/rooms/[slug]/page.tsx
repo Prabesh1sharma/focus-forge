@@ -258,7 +258,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
           <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
             <Trophy size={15} /> Leaderboard
           </h2>
-          <RoomLeaderboard roomId={room.id} />
+          <RoomLeaderboard roomId={room.id} roomSlug={room.slug} />
         </div>
       </div>
     </div>
