@@ -77,9 +77,10 @@ export default function RoomLeaderboard({ roomId }: { roomId: string }) {
         <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Loading…</div>
       ) : error ? (
         <div style={{ padding: 24, textAlign: "center" }}>
-          <Lock size={24} color="var(--text-muted)" style={{ marginBottom: 8 }} />
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <Lock size={24} color="var(--text-muted)" />
+          </div>
           <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>{error}</p>
-          <p style={{ fontSize: 12, color: "var(--text-muted)" }}>Go to the room page to request access</p>
         </div>
       ) : data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
