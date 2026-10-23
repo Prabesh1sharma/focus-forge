@@ -32,7 +32,10 @@ export async function GET(
     .limit(1);
 
   if (!membership) {
-    return NextResponse.json({ error: "Not a member of this room" }, { status: 403 });
+    return NextResponse.json(
+      { error: "Join this room to view the leaderboard" },
+      { status: 403 }
+    );
   }
 
   // Determine period start

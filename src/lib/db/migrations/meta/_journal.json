@@ -8,6 +8,27 @@
       "when": 1792407750725,
       "tag": "0000_aberrant_captain_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792748236907,
+      "tag": "0001_panoramic_madame_masque",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792751591820,
+      "tag": "0002_flashy_terrax",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792751851431,
+      "tag": "0003_goofy_sunset_bain",
+      "breakpoints": true
     }
   ]
 }

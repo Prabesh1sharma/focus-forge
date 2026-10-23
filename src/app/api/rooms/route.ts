@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth/config";
 import { db } from "@/lib/db";
-import { rooms, roomMemberships } from "@/lib/db/schema";
+import { rooms, roomMemberships, roomJoinRequests } from "@/lib/db/schema";
 import { createRoomSchema } from "@/lib/validations/rooms";
 import { generateSlug } from "@/lib/utils";
-import { eq } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 
 // POST /api/rooms — create a room
 export async function POST(req: NextRequest) {
@@ -77,12 +77,60 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const publicRooms = await db
+  const userId = session.user.id;
+
+  // First get all public rooms
+  const roomList = await db
     .select()
     .from(rooms)
     .where(eq(rooms.visibility, "public"))
     .orderBy(rooms.createdAt)
     .limit(50);
+
+  // Get member counts for all rooms
+  const memberCounts = await db
+    .select({
+      roomId: roomMemberships.roomId,
+      count: sql<number>`COUNT(*)::int`,
+    })
+    .from(roomMemberships)
+    .groupBy(roomMemberships.roomId);
+
+  // Get memberships for current user
+  const userMemberships = await db
+    .select({ roomId: roomMemberships.roomId })
+    .from(roomMemberships)
+    .where(eq(roomMemberships.userId, userId));
+
+  // Get pending join requests for current user
+  const userJoinRequests = await db
+    .select({ roomId: roomJoinRequests.roomId })
+    .from(roomJoinRequests)
+    .where(
+      and(
+        eq(roomJoinRequests.userId, userId),
+        eq(roomJoinRequests.status, "pending")
+      )
+    );
+
+  // Build lookup maps
+  const countMap = new Map(memberCounts.map(m => [m.roomId, Number(m.count)]));
+  const memberSet = new Set(userMemberships.map(m => m.roomId));
+  const requestSet = new Set(userJoinRequests.map(r => r.roomId));
+
+  const publicRooms = roomList.map(room => ({
+    id: room.id,
+    name: room.name,
+    slug: room.slug,
+    description: room.description,
+    avatarColor: room.avatarColor,
+    visibility: room.visibility,
+    createdBy: room.createdBy,
+    createdAt: room.createdAt,
+    memberCount: countMap.get(room.id) ?? 0,
+    isMember: memberSet.has(room.id),
+    hasRequested: requestSet.has(room.id),
+  }));
 
   return NextResponse.json({ rooms: publicRooms });
 }

@@ -1,10 +1,9 @@
 "use client";
 
-"use client";
-
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { formatDuration, getInitials } from "@/lib/utils";
+import { Lock } from "lucide-react";
 
 interface LeaderboardEntry {
   userId: string;
@@ -27,14 +26,24 @@ export default function RoomLeaderboard({ roomId }: { roomId: string }) {
   const [period, setPeriod] = useState<"today" | "week" | "month" | "all">("week");
   const [data, setData] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function load() {
       setLoading(true);
+      setError(null);
       try {
         const res = await fetch(`/api/rooms/${roomId}/leaderboard?period=${period}`);
         const json = await res.json();
-        setData(json.leaderboard ?? []);
+        if (!res.ok) {
+          setError(json.error || "Failed to load leaderboard");
+          setData([]);
+        } else {
+          setData(json.leaderboard ?? []);
+        }
+      } catch {
+        setError("Failed to load leaderboard");
+        setData([]);
       } finally {
         setLoading(false);
       }
@@ -66,6 +75,13 @@ export default function RoomLeaderboard({ roomId }: { roomId: string }) {
 
       {loading ? (
         <div style={{ padding: 20, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>Loading…</div>
+      ) : error ? (
+        <div style={{ padding: 24, textAlign: "center" }}>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
+            <Lock size={24} color="var(--text-muted)" />
+          </div>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 12 }}>{error}</p>
+        </div>
       ) : data.length === 0 ? (
         <div style={{ padding: 24, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
           No sessions this period yet

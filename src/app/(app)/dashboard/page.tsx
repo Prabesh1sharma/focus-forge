@@ -178,6 +178,9 @@ export default async function DashboardPage() {
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
             <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--text-primary)" }}>Your Rooms</h2>
             <div style={{ display: "flex", gap: 8 }}>
+              <Link href="/rooms" className="btn-secondary" style={{ padding: "7px 14px", fontSize: 13 }}>
+                <Users size={14} /> Explore Rooms
+              </Link>
               <Link href="/rooms/new" className="btn-primary" style={{ padding: "7px 14px", fontSize: 13 }}>
                 <Plus size={14} /> New Room
               </Link>
