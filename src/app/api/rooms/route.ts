@@ -114,7 +114,7 @@ export async function GET() {
     );
 
   // Build lookup maps
-  const countMap = new Map(memberCounts.map(m => [m.roomId, m.count]));
+  const countMap = new Map(memberCounts.map(m => [m.roomId, Number(m.count)]));
   const memberSet = new Set(userMemberships.map(m => m.roomId));
   const requestSet = new Set(userJoinRequests.map(r => r.roomId));
 
