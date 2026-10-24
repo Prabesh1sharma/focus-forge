@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusForge Blocker</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="brand">
+        <div class="logo-icon">🛡️</div>
+        <div>
+          <h1 class="brand-title">FocusForge</h1>
+          <p class="brand-subtitle">Distraction Blocker</p>
+        </div>
+      </div>
+      <div id="connectionPill" class="status-pill status-disconnected">
+        <span class="status-dot"></span>
+        <span id="connectionText">Checking...</span>
+      </div>
+    </header>
+
+    <!-- Error Banner -->
+    <div id="errorBanner" class="error-banner hidden">
+      <span class="error-icon">⚠️</span>
+      <span id="errorMessage" class="error-text"></span>
+    </div>
+
+    <!-- Disconnected State View -->
+    <div id="disconnectedView" class="view hidden">
+      <div class="card onboarding-card">
+        <h3>Connect Your Account</h3>
+        <p class="text-muted text-sm">
+          Generate a 6-character single-use pairing code in your FocusForge Settings to pair this browser.
+        </p>
+
+        <form id="pairingForm" class="pairing-form">
+          <div class="form-group">
+            <label for="pairingCodeInput" class="label">Pairing Code</label>
+            <input
+              type="text"
+              id="pairingCodeInput"
+              class="input code-input"
+              placeholder="e.g. 7K9M2P"
+              maxlength="10"
+              autocomplete="off"
+              spellcheck="false"
+              required
+            />
+          </div>
+
+          <details class="advanced-settings">
+            <summary class="text-xs text-muted">Advanced server settings</summary>
+            <div class="form-group mt-2">
+              <label for="apiUrlInput" class="label">FocusForge URL</label>
+              <input
+                type="url"
+                id="apiUrlInput"
+                class="input input-sm"
+                value="http://localhost:3000"
+              />
+            </div>
+          </details>
+
+          <button type="submit" id="pairBtn" class="btn btn-primary btn-block">
+            Pair Extension
+          </button>
+        </form>
+
+        <a id="openSettingsLink" href="http://localhost:3000/settings" target="_blank" class="link-btn">
+          Open FocusForge Settings ↗
+        </a>
+      </div>
+    </div>
+
+    <!-- Connected State View -->
+    <div id="connectedView" class="view hidden">
+      <!-- Session Card -->
+      <div class="card session-card">
+        <div class="session-header">
+          <span class="session-type-badge" id="sessionTypeBadge">Focus Session</span>
+          <span class="session-status-badge" id="sessionStatusBadge">Active</span>
+        </div>
+
+        <div class="timer-display">
+          <div id="timerCountdown" class="timer-digits">00:00</div>
+          <div id="sessionLabel" class="session-label text-muted">No active session</div>
+        </div>
+      </div>
+
+      <!-- Blocking Status Card -->
+      <div class="card blocking-card">
+        <div class="blocking-row">
+          <div class="blocking-info">
+            <div id="blockingShieldIcon" class="shield-indicator shield-active">🛡️</div>
+            <div>
+              <div id="blockingStatusTitle" class="blocking-title">Blocking Active</div>
+              <div id="blockingStatusDesc" class="blocking-desc text-muted">
+                Distracting sites are blocked
+              </div>
+            </div>
+          </div>
+          <span id="rulesCountBadge" class="count-badge">0 sites</span>
+        </div>
+      </div>
+
+      <!-- Blocklist Section -->
+      <div class="card blocklist-card">
+        <div class="blocklist-header">
+          <span class="section-title">Blocked Websites</span>
+          <span id="totalDomainsCount" class="text-xs text-muted">0 total</span>
+        </div>
+
+        <div id="domainsListContainer" class="domains-list">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+
+      <!-- Actions Footer -->
+      <footer class="footer-actions">
+        <button id="syncBtn" class="btn btn-secondary btn-sm" title="Synchronize with server">
+          <span id="syncIcon">🔄</span> Sync
+        </button>
+        <button id="goToDashboardBtn" class="btn btn-secondary btn-sm">
+          Open App ↗
+        </button>
+        <button id="disconnectBtn" class="btn btn-ghost btn-sm text-danger" title="Disconnect extension">
+          Disconnect
+        </button>
+      </footer>
+
+      <div class="sync-meta text-xs text-muted">
+        Last synced: <span id="lastSyncedTime">Just now</span>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="popup.ts"></script>
+</body>
+</html>
