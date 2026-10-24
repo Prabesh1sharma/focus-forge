@@ -34,6 +34,7 @@ export default function RoomRecentActivity({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const loadingRef = useRef(false);
 
@@ -67,9 +68,11 @@ export default function RoomRecentActivity({
     }
   }, [roomId, hasMore, page, limit]);
 
+  // IntersectionObserver watching sentinel inside scrollable container
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasMore) return;
+    const container = containerRef.current;
+    if (!sentinel || !container || !hasMore) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -78,8 +81,8 @@ export default function RoomRecentActivity({
         }
       },
       {
-        root: null,
-        rootMargin: "150px",
+        root: container,
+        rootMargin: "50px",
         threshold: 0,
       }
     );
@@ -87,6 +90,17 @@ export default function RoomRecentActivity({
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [hasMore, loadMore]);
+
+  // Direct onScroll handler for guaranteed lazy-loading when scrolling container
+  const handleScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+      if (scrollHeight - scrollTop - clientHeight < 60 && hasMore && !loadingRef.current) {
+        loadMore();
+      }
+    },
+    [hasMore, loadMore]
+  );
 
   if (sessions.length === 0) {
     return (
@@ -100,7 +114,15 @@ export default function RoomRecentActivity({
   }
 
   return (
-    <div>
+    <div
+      ref={containerRef}
+      onScroll={handleScroll}
+      style={{
+        maxHeight: 285,
+        overflowY: "auto",
+        paddingRight: 6,
+      }}
+    >
       <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
         {sessions.map((s) => (
           <Link
@@ -176,7 +198,7 @@ export default function RoomRecentActivity({
         ))}
       </div>
 
-      {/* Sentinel for lazy loading on scroll */}
+      {/* Sentinel for lazy loading on scroll inside container */}
       {hasMore && (
         <div
           ref={sentinelRef}
@@ -184,8 +206,8 @@ export default function RoomRecentActivity({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            padding: "16px 0",
-            minHeight: 48,
+            padding: "12px 0",
+            minHeight: 40,
           }}
         >
           {loading ? (
@@ -195,20 +217,20 @@ export default function RoomRecentActivity({
                 alignItems: "center",
                 gap: 8,
                 color: "var(--text-muted)",
-                fontSize: 13,
+                fontSize: 12,
               }}
             >
-              <Loader2 size={16} className="animate-spin" />
-              <span>Loading more activity…</span>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Loading more…</span>
             </div>
           ) : (
             <button
               type="button"
               onClick={loadMore}
               className="btn-ghost"
-              style={{ fontSize: 12, padding: "6px 12px" }}
+              style={{ fontSize: 11, padding: "4px 10px" }}
             >
-              Load more activity
+              Load more
             </button>
           )}
         </div>
@@ -218,9 +240,9 @@ export default function RoomRecentActivity({
         <div
           style={{
             textAlign: "center",
-            padding: "12px 0",
+            padding: "10px 0",
             color: "#f87171",
-            fontSize: 13,
+            fontSize: 12,
           }}
         >
           {error}{" "}
@@ -245,9 +267,9 @@ export default function RoomRecentActivity({
         <div
           style={{
             textAlign: "center",
-            padding: "16px 0 6px",
+            padding: "12px 0 4px",
             color: "var(--text-muted)",
-            fontSize: 12,
+            fontSize: 11,
           }}
         >
           All {sessions.length} activities loaded
