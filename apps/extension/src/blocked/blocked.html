@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusForge — Site Blocked</title>
+  <link rel="stylesheet" href="blocked.css" />
+</head>
+<body>
+  <div class="blocked-card">
+    <div class="shield-halo">
+      <div class="shield-badge">🛡️</div>
+    </div>
+
+    <div class="brand-tag">FocusForge Distraction Shield</div>
+
+    <h1 class="headline">Stay in the Zone!</h1>
+    <p class="subheadline">
+      This site is blocked during your focus session to help you protect your attention and momentum.
+    </p>
+
+    <!-- Timer Box -->
+    <div class="timer-box">
+      <div class="timer-label" id="sessionLabel">Focus Session Active</div>
+      <div class="timer-display" id="timerCountdown">--:--</div>
+      <div class="timer-desc text-muted" id="timerSubtext">remaining until your next break</div>
+    </div>
+
+    <!-- Motivational Quote -->
+    <div class="quote-box">
+      <p id="motivationalQuote" class="quote-text">
+        "Concentrate all your thoughts upon the work at hand. The sun's rays do not burn until brought to a focus."
+      </p>
+      <span class="quote-author" id="quoteAuthor">— Alexander Graham Bell</span>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="actions-group">
+      <button id="openFocusBtn" class="btn btn-primary">
+        Go to Focus Session ⏱️
+      </button>
+      <button id="openSettingsBtn" class="btn btn-secondary">
+        Distraction Settings ⚙️
+      </button>
+    </div>
+
+    <div class="footer-note text-muted text-xs">
+      Distraction blocking is enforced by FocusForge Chrome Extension.
+    </div>
+  </div>
+
+  <script type="module" src="blocked.ts"></script>
+</body>
+</html>

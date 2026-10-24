@@ -60,6 +60,15 @@ export const notificationTypeEnum = pgEnum("notification_type", [
   "session_completed",
   "streak_milestone",
 ]);
+export const blockingScheduleModeEnum = pgEnum("blocking_schedule_mode", [
+  "focus_only",
+  "focus_and_breaks",
+  "always",
+]);
+export const blockingPausePolicyEnum = pgEnum("blocking_pause_policy", [
+  "keep_blocking",
+  "pause_blocking",
+]);
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
@@ -355,9 +364,104 @@ export const notifications = pgTable(
   ]
 );
 
+// ─── Distraction Settings ─────────────────────────────────────────────────────
+
+export const distractionSettings = pgTable(
+  "distraction_settings",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    scheduleMode: blockingScheduleModeEnum("schedule_mode")
+      .notNull()
+      .default("focus_only"),
+    pausePolicy: blockingPausePolicyEnum("pause_policy")
+      .notNull()
+      .default("keep_blocking"),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("distraction_settings_user_idx").on(t.userId),
+  ]
+);
+
+// ─── Blocked Domains ──────────────────────────────────────────────────────────
+
+export const blockedDomains = pgTable(
+  "blocked_domains",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    domain: text("domain").notNull(),
+    category: text("category"), // e.g., 'social_media', 'entertainment', 'news', 'custom'
+    isEnabled: boolean("is_enabled").notNull().default(true),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("blocked_domains_user_domain_idx").on(t.userId, t.domain),
+    index("blocked_domains_user_idx").on(t.userId),
+  ]
+);
+
+// ─── Extension Pairing Codes ─────────────────────────────────────────────────
+
+export const extensionPairingCodes = pgTable(
+  "extension_pairing_codes",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    codeHash: text("code_hash").notNull(),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+    usedAt: timestamp("used_at", { mode: "date" }),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("extension_pairing_codes_code_hash_idx").on(t.codeHash),
+    index("extension_pairing_codes_user_idx").on(t.userId),
+  ]
+);
+
+// ─── Extension Tokens (Paired Clients) ────────────────────────────────────────
+
+export const extensionTokens = pgTable(
+  "extension_tokens",
+  {
+    id: text("id")
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tokenHash: text("token_hash").notNull(),
+    name: text("name").notNull().default("Chrome Extension"),
+    lastUsedAt: timestamp("last_used_at", { mode: "date" }),
+    revokedAt: timestamp("revoked_at", { mode: "date" }),
+    expiresAt: timestamp("expires_at", { mode: "date" }).notNull(),
+    createdAt: timestamp("created_at", { mode: "date" }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("extension_tokens_token_hash_idx").on(t.tokenHash),
+    index("extension_tokens_user_idx").on(t.userId),
+  ]
+);
+
 // ─── Relations ────────────────────────────────────────────────────────────────
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ one, many }) => ({
   accounts: many(accounts),
   authSessions: many(authSessions),
   roomMemberships: many(roomMemberships),
@@ -368,6 +472,9 @@ export const usersRelations = relations(users, ({ many }) => ({
   receivedInvitations: many(roomInvitations, { relationName: "invitee" }),
   sentJoinRequests: many(roomJoinRequests, { relationName: "requester" }),
   notifications: many(notifications, { relationName: "recipient" }),
+  distractionSettings: one(distractionSettings),
+  blockedDomains: many(blockedDomains),
+  extensionTokens: many(extensionTokens),
 }));
 
 export const roomsRelations = relations(rooms, ({ one, many }) => ({
@@ -468,6 +575,33 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
   }),
 }));
 
+export const distractionSettingsRelations = relations(
+  distractionSettings,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [distractionSettings.userId],
+      references: [users.id],
+    }),
+  })
+);
+
+export const blockedDomainsRelations = relations(blockedDomains, ({ one }) => ({
+  user: one(users, {
+    fields: [blockedDomains.userId],
+    references: [users.id],
+  }),
+}));
+
+export const extensionTokensRelations = relations(
+  extensionTokens,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [extensionTokens.userId],
+      references: [users.id],
+    }),
+  })
+);
+
 // ─── Type exports ─────────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect;
@@ -481,3 +615,9 @@ export type FocusSession = typeof focusSessions.$inferSelect;
 export type NewFocusSession = typeof focusSessions.$inferInsert;
 export type DailyFocusAggregate = typeof dailyFocusAggregates.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
+export type DistractionSettings = typeof distractionSettings.$inferSelect;
+export type NewDistractionSettings = typeof distractionSettings.$inferInsert;
+export type BlockedDomain = typeof blockedDomains.$inferSelect;
+export type NewBlockedDomain = typeof blockedDomains.$inferInsert;
+export type ExtensionPairingCode = typeof extensionPairingCodes.$inferSelect;
+export type ExtensionToken = typeof extensionTokens.$inferSelect;

@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import DistractionBlockingSection from "@/components/settings/DistractionBlockingSection";
+import { Shield, User as UserIcon } from "lucide-react";
 
 interface SettingsPageClientProps {
   user: {
@@ -19,6 +21,7 @@ interface SettingsPageClientProps {
 
 export default function SettingsPageClient({ user }: SettingsPageClientProps) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"general" | "blocking">("general");
   const [form, setForm] = useState({
     displayName: user.displayName,
     username: user.username,
@@ -59,112 +62,173 @@ export default function SettingsPageClient({ user }: SettingsPageClientProps) {
   const TIMEZONES = Intl.supportedValuesOf("timeZone");
 
   return (
-    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+    <div style={{ maxWidth: 640, margin: "0 auto" }}>
       <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--text-primary)", marginBottom: 6 }}>Settings</h1>
-      <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 28 }}>Manage your profile and preferences</p>
+      <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 20 }}>Manage your profile, preferences, and distraction blocking</p>
 
-      <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        {/* Profile section */}
-        <div className="card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 18 }}>Profile</h2>
-
-          {saved && (
-            <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid var(--brand-700)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--brand-400)", marginBottom: 16 }}>
-              ✓ Settings saved successfully
-            </div>
-          )}
-
-          {error && (
-            <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#f87171", marginBottom: 16 }}>
-              {error}
-            </div>
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            <div className="form-group">
-              <label className="label" htmlFor="displayName">Display Name</label>
-              <input id="displayName" type="text" className="input" value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} maxLength={50} />
-            </div>
-            <div className="form-group">
-              <label className="label" htmlFor="username">Username</label>
-              <input id="username" type="text" className="input" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))} maxLength={30} />
-            </div>
-          </div>
-
-          <div className="form-group" style={{ marginTop: 14 }}>
-            <label className="label" htmlFor="bio">Bio</label>
-            <textarea id="bio" className="input" value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} maxLength={200} rows={3} style={{ resize: "vertical" }} />
-          </div>
-        </div>
-
-        {/* Preferences */}
-        <div className="card" style={{ padding: 24 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 18 }}>Preferences</h2>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div className="form-group">
-              <label className="label" htmlFor="timezone">Timezone</label>
-              <select id="timezone" className="input" value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}>
-                {TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="label" htmlFor="dailyGoal">Daily Focus Goal (minutes)</label>
-              <input id="dailyGoal" type="number" className="input" min={5} max={720} value={form.dailyGoalMinutes} onChange={(e) => setForm((f) => ({ ...f, dailyGoalMinutes: Number(e.target.value) }))} />
-            </div>
-
-            <div className="form-group">
-              <label className="label" htmlFor="primaryGoal">Primary Goal</label>
-              <select id="primaryGoal" className="input" value={form.primaryGoal} onChange={(e) => setForm((f) => ({ ...f, primaryGoal: e.target.value }))}>
-                <option value="reading">Reading</option>
-                <option value="studying">Studying</option>
-                <option value="deep_work">Deep Work</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="label">Profile Visibility</label>
-              <div style={{ display: "flex", gap: 10 }}>
-                {(["public", "private"] as const).map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, profileVisibility: v }))}
-                    className={form.profileVisibility === v ? "btn-primary" : "btn-secondary"}
-                    style={{ flex: 1, justifyContent: "center", fontSize: 13, padding: "9px" }}
-                  >
-                    {v === "public" ? "🌐 Public" : "🔒 Private"}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
+      {/* Tabs */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          marginBottom: 24,
+          borderBottom: "1px solid var(--border-color, rgba(255,255,255,0.08))",
+          paddingBottom: 4,
+        }}
+      >
         <button
-          type="submit"
-          className="btn-primary"
-          disabled={saving}
-          style={{ width: "100%", justifyContent: "center", padding: "13px", fontSize: 15 }}
+          type="button"
+          onClick={() => setActiveTab("general")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            background: "none",
+            border: "none",
+            borderBottom: activeTab === "general" ? "2px solid var(--brand-500, #10b981)" : "2px solid transparent",
+            color: activeTab === "general" ? "var(--brand-400, #34d399)" : "var(--text-muted)",
+            transition: "0.15s ease",
+          }}
         >
-          {saving ? "Saving…" : "Save Changes"}
+          <UserIcon size={16} />
+          Profile & Preferences
         </button>
-      </form>
 
-      {/* Danger zone */}
-      <div className="card" style={{ marginTop: 24, padding: 24, borderColor: "rgba(239,68,68,0.2)" }}>
-        <h2 style={{ fontSize: 15, fontWeight: 700, color: "#ef4444", marginBottom: 14 }}>Account</h2>
         <button
-          className="btn-ghost"
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          style={{ color: "#f87171", fontSize: 14 }}
+          type="button"
+          onClick={() => setActiveTab("blocking")}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "8px 16px",
+            fontSize: 14,
+            fontWeight: 600,
+            cursor: "pointer",
+            background: "none",
+            border: "none",
+            borderBottom: activeTab === "blocking" ? "2px solid var(--brand-500, #10b981)" : "2px solid transparent",
+            color: activeTab === "blocking" ? "var(--brand-400, #34d399)" : "var(--text-muted)",
+            transition: "0.15s ease",
+          }}
         >
-          Sign out
+          <Shield size={16} />
+          Distraction Blocking
         </button>
       </div>
+
+      {activeTab === "blocking" ? (
+        <DistractionBlockingSection />
+      ) : (
+        <>
+          <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {/* Profile section */}
+            <div className="card" style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 18 }}>Profile</h2>
+
+              {saved && (
+                <div style={{ background: "rgba(16,185,129,0.1)", border: "1px solid var(--brand-700)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "var(--brand-400)", marginBottom: 16 }}>
+                  ✓ Settings saved successfully
+                </div>
+              )}
+
+              {error && (
+                <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 8, padding: "10px 14px", fontSize: 13, color: "#f87171", marginBottom: 16 }}>
+                  {error}
+                </div>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+                <div className="form-group">
+                  <label className="label" htmlFor="displayName">Display Name</label>
+                  <input id="displayName" type="text" className="input" value={form.displayName} onChange={(e) => setForm((f) => ({ ...f, displayName: e.target.value }))} maxLength={50} />
+                </div>
+                <div className="form-group">
+                  <label className="label" htmlFor="username">Username</label>
+                  <input id="username" type="text" className="input" value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value.toLowerCase() }))} maxLength={30} />
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label className="label" htmlFor="bio">Bio</label>
+                <textarea id="bio" className="input" value={form.bio} onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))} maxLength={200} rows={3} style={{ resize: "vertical" }} />
+              </div>
+            </div>
+
+            {/* Preferences */}
+            <div className="card" style={{ padding: 24 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-secondary)", marginBottom: 18 }}>Preferences</h2>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                <div className="form-group">
+                  <label className="label" htmlFor="timezone">Timezone</label>
+                  <select id="timezone" className="input" value={form.timezone} onChange={(e) => setForm((f) => ({ ...f, timezone: e.target.value }))}>
+                    {TIMEZONES.map((tz) => (
+                      <option key={tz} value={tz}>{tz}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="label" htmlFor="dailyGoal">Daily Focus Goal (minutes)</label>
+                  <input id="dailyGoal" type="number" className="input" min={5} max={720} value={form.dailyGoalMinutes} onChange={(e) => setForm((f) => ({ ...f, dailyGoalMinutes: Number(e.target.value) }))} />
+                </div>
+
+                <div className="form-group">
+                  <label className="label" htmlFor="primaryGoal">Primary Goal</label>
+                  <select id="primaryGoal" className="input" value={form.primaryGoal} onChange={(e) => setForm((f) => ({ ...f, primaryGoal: e.target.value }))}>
+                    <option value="reading">Reading</option>
+                    <option value="studying">Studying</option>
+                    <option value="deep_work">Deep Work</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="label">Profile Visibility</label>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    {(["public", "private"] as const).map((v) => (
+                      <button
+                        key={v}
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, profileVisibility: v }))}
+                        className={form.profileVisibility === v ? "btn-primary" : "btn-secondary"}
+                        style={{ flex: 1, justifyContent: "center", fontSize: 13, padding: "9px" }}
+                      >
+                        {v === "public" ? "🌐 Public" : "🔒 Private"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              className="btn-primary"
+              disabled={saving}
+              style={{ width: "100%", justifyContent: "center", padding: "13px", fontSize: 15 }}
+            >
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+          </form>
+
+          {/* Danger zone */}
+          <div className="card" style={{ marginTop: 24, padding: 24, borderColor: "rgba(239,68,68,0.2)" }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: "#ef4444", marginBottom: 14 }}>Account</h2>
+            <button
+              className="btn-ghost"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              style={{ color: "#f87171", fontSize: 14 }}
+            >
+              Sign out
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }

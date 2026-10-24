@@ -29,7 +29,8 @@ A production-quality social focus & reading tracker built with Next.js App Route
 | ✅ Web Audio API bell sound | Done |
 | ✅ Mobile-responsive (sidebar + bottom nav) | Done |
 | ✅ Dark mode design system | Done |
-| ✅ 42 Vitest unit tests | Done |
+| ✅ Distraction Blocking Chrome Extension (MV3 + DeclarativeNetRequest) | Done |
+| ✅ 81 Vitest unit tests | Done |
 | ✅ Playwright e2e test suite | Done |
 
 ---
