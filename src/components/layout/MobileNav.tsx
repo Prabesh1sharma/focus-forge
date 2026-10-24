@@ -17,11 +17,15 @@ export default function MobileNav() {
 
   return (
     <nav
-      className="md:hidden"
+      className="mobile-bottom-nav flex md:hidden"
       style={{
-        position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50,
-        background: "var(--surface-1)", borderTop: "1px solid var(--border)",
-        display: "flex",
+        position: "fixed",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        background: "var(--surface-1)",
+        borderTop: "1px solid var(--border)",
       }}
     >
       {mobileLinks.map(({ href, icon: Icon, label }) => {

@@ -18,7 +18,7 @@ export default async function AppLayout({
 
       {/* Main content */}
       <div style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <main style={{ flex: 1, padding: "24px 32px", overflowY: "auto" }}>
+        <main className="app-main-content" style={{ flex: 1, overflowY: "auto" }}>
           {children}
         </main>
       </div>
