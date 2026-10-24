@@ -33,6 +33,11 @@ export function useTimer(options: UseTimerOptions = {}) {
 
   const completedRef = useRef(false); // Prevent duplicate completion calls
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const onSessionCompleteRef = useRef(onSessionComplete);
+
+  useEffect(() => {
+    onSessionCompleteRef.current = onSessionComplete;
+  }, [onSessionComplete]);
 
   // Convert ActiveSession from API to TimerState for engine
   function toTimerState(s: ActiveSession): TimerState {
@@ -61,19 +66,39 @@ export function useTimer(options: UseTimerOptions = {}) {
 
     if (calc.isExpired && !completedRef.current) {
       completedRef.current = true;
-      if (soundEnabled && activeSession.sessionType === "focus") {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+
+      const expiredSession = activeSession;
+      // Immediately clear activeSession so the UI doesn't linger on 'active' / 'pause'
+      setActiveSession(null);
+      setRemaining(0);
+      setProgress(0);
+      setHasCompleted(true);
+
+      if (soundEnabled) {
         playTimerSound(soundVolume);
       }
+
       // Request browser notification
       if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
-        new Notification("FocusForge — Session Complete! 🎉", {
-          body: `Great work! Your ${activeSession.sessionType === "focus" ? "focus" : "break"} session is done.`,
-          icon: "/favicon.ico",
-        });
+        const isFocus = expiredSession.sessionType === "focus";
+        new Notification(
+          isFocus ? "FocusForge — Session Complete! 🎉" : "FocusForge — Break Finished! ⚡",
+          {
+            body: isFocus
+              ? "Great work! Take a break, you earned it."
+              : "Break is over! Time to get back into flow.",
+            icon: "/favicon.ico",
+          }
+        );
       }
-      onSessionComplete?.(activeSession.id, activeSession.sessionType);
+
+      onSessionCompleteRef.current?.(expiredSession.id, expiredSession.sessionType);
     }
-  }, [activeSession, soundEnabled, soundVolume, onSessionComplete]);
+  }, [activeSession, soundEnabled, soundVolume]);
 
   // Start interval when session is active
   useEffect(() => {
@@ -129,6 +154,18 @@ export function useTimer(options: UseTimerOptions = {}) {
       if (!res.ok) return;
       const data = await res.json();
       if (data.session) {
+        const state = toTimerState(data.session);
+        const calc = calculateRemaining(state);
+        if (calc.isExpired) {
+          completedRef.current = true;
+          setActiveSession(null);
+          setRemaining(0);
+          setProgress(0);
+          setHasCompleted(true);
+          onSessionCompleteRef.current?.(data.session.id, data.session.sessionType);
+          return;
+        }
+
         completedRef.current = false;
         setHasCompleted(false);
         setActiveSession(data.session);
@@ -207,6 +244,7 @@ export function useTimer(options: UseTimerOptions = {}) {
         method: "POST",
       });
       const data = await res.json();
+      completedRef.current = false;
       setActiveSession(null);
       setHasCompleted(true);
       setProgress(0);

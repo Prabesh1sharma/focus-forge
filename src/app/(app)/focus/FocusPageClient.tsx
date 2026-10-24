@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTimer } from "@/hooks/useTimer";
 import { formatCountdown } from "@/lib/utils";
+import { getNextSessionType } from "@/lib/timer/engine";
 import TimerSettingsModal, { TimerSettings } from "@/components/focus/TimerSettingsModal";
 import {
   Play,
@@ -50,6 +51,22 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
   const [label, setLabel] = useState("");
   const [confirmAbandon, setConfirmAbandon] = useState(false);
 
+  // Keep references to fresh values across asynchronous callbacks
+  const sessionCountRef = useRef(sessionCount);
+  useEffect(() => {
+    sessionCountRef.current = sessionCount;
+  }, [sessionCount]);
+
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const labelRef = useRef(label);
+  useEffect(() => {
+    labelRef.current = label;
+  }, [label]);
+
   const plannedSeconds =
     currentMode === "focus"
       ? settings.focusDurationMinutes * 60
@@ -59,28 +76,68 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
 
   const handleSessionComplete = useCallback(
     async (sessionId: string, mode: TimerMode) => {
+      const isAuto = settingsRef.current.autoTransition;
+
       if (mode === "focus") {
-        setSessionCount((c) => c + 1);
+        const nextCount = sessionCountRef.current + 1;
+        setSessionCount(nextCount);
+        sessionCountRef.current = nextCount;
+
         setShowCelebration(true);
         setTimeout(() => setShowCelebration(false), 5000);
-        // Complete on server
-        await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" });
-        // Auto-transition to break
-        if (settings.autoTransition) {
-          const nextMode: TimerMode =
-            (sessionCount + 1) % settings.sessionsBeforeLongBreak === 0
-              ? "long_break"
-              : "short_break";
-          setCurrentMode(nextMode);
+
+        const nextMode = getNextSessionType(
+          nextCount,
+          settingsRef.current.sessionsBeforeLongBreak
+        );
+        setCurrentMode(nextMode);
+
+        // Mark focus session as completed on server
+        await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" }).catch((err) =>
+          console.error("Failed to complete focus session:", err)
+        );
+
+        // If autoTransition is ON, start break smoothly without pause
+        if (isAuto) {
+          const breakDuration =
+            nextMode === "long_break"
+              ? settingsRef.current.longBreakMinutes * 60
+              : settingsRef.current.shortBreakMinutes * 60;
+
+          try {
+            await timerRef.current.startSession({
+              sessionType: nextMode,
+              plannedDurationSeconds: breakDuration,
+            });
+          } catch (err) {
+            console.error("Failed to auto-start break session:", err);
+          }
         }
       } else {
-        // Break completed
-        if (settings.autoTransition) {
-          setCurrentMode("focus");
+        // Break completed — transition back to focus
+        setCurrentMode("focus");
+
+        // Mark break session as completed on server
+        await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" }).catch((err) =>
+          console.error("Failed to complete break session:", err)
+        );
+
+        // If autoTransition is ON, start next focus session smoothly
+        if (isAuto) {
+          const focusDuration = settingsRef.current.focusDurationMinutes * 60;
+          try {
+            await timerRef.current.startSession({
+              sessionType: "focus",
+              label: labelRef.current || undefined,
+              plannedDurationSeconds: focusDuration,
+            });
+          } catch (err) {
+            console.error("Failed to auto-start focus session:", err);
+          }
         }
       }
     },
-    [settings, sessionCount]
+    []
   );
 
   const timer = useTimer({
@@ -88,6 +145,23 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
     soundVolume: settings.soundVolume,
     onSessionComplete: handleSessionComplete,
   });
+
+  const timerRef = useRef(timer);
+  useEffect(() => {
+    timerRef.current = timer;
+  });
+
+  const handleSkipBreak = useCallback(async () => {
+    await timer.completeSession();
+    setCurrentMode("focus");
+    if (settingsRef.current.autoTransition) {
+      await timer.startSession({
+        sessionType: "focus",
+        label: labelRef.current || undefined,
+        plannedDurationSeconds: settingsRef.current.focusDurationMinutes * 60,
+      });
+    }
+  }, [timer]);
 
   const displaySeconds = timer.activeSession ? timer.remaining : plannedSeconds;
   const displayProgress = timer.activeSession ? timer.progress : 0;
@@ -134,6 +208,7 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
   // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (showSettings) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space") {
         e.preventDefault();
@@ -144,7 +219,7 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [timer, handleStart]);
+  }, [timer, handleStart, showSettings]);
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -343,7 +418,7 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
               {timer.activeSession.sessionType !== "focus" && (
                 <button
                   className="btn-ghost"
-                  onClick={() => timer.completeSession()}
+                  onClick={handleSkipBreak}
                   title="Skip break"
                 >
                   <SkipForward size={18} />
