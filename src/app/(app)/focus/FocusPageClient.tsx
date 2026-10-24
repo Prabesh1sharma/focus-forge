@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useTimer } from "@/hooks/useTimer";
 import { formatCountdown } from "@/lib/utils";
+import { getNextSessionType } from "@/lib/timer/engine";
+import TimerSettingsModal, { TimerSettings } from "@/components/focus/TimerSettingsModal";
 import {
   Play,
   Pause,
@@ -15,16 +17,6 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-
-interface TimerSettings {
-  focusDurationMinutes: number;
-  shortBreakMinutes: number;
-  longBreakMinutes: number;
-  sessionsBeforeLongBreak: number;
-  autoTransition: boolean;
-  soundEnabled: boolean;
-  soundVolume: number;
-}
 
 interface FocusPageClientProps {
   initialSettings: TimerSettings;
@@ -58,7 +50,22 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
   const [showCelebration, setShowCelebration] = useState(false);
   const [label, setLabel] = useState("");
   const [confirmAbandon, setConfirmAbandon] = useState(false);
-  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Keep references to fresh values across asynchronous callbacks
+  const sessionCountRef = useRef(sessionCount);
+  useEffect(() => {
+    sessionCountRef.current = sessionCount;
+  }, [sessionCount]);
+
+  const settingsRef = useRef(settings);
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
+  const labelRef = useRef(label);
+  useEffect(() => {
+    labelRef.current = label;
+  }, [label]);
 
   const plannedSeconds =
     currentMode === "focus"
@@ -69,28 +76,68 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
 
   const handleSessionComplete = useCallback(
     async (sessionId: string, mode: TimerMode) => {
+      const isAuto = settingsRef.current.autoTransition;
+
       if (mode === "focus") {
-        setSessionCount((c) => c + 1);
+        const nextCount = sessionCountRef.current + 1;
+        setSessionCount(nextCount);
+        sessionCountRef.current = nextCount;
+
         setShowCelebration(true);
         setTimeout(() => setShowCelebration(false), 5000);
-        // Complete on server
-        await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" });
-        // Auto-transition to break
-        if (settings.autoTransition) {
-          const nextMode: TimerMode =
-            (sessionCount + 1) % settings.sessionsBeforeLongBreak === 0
-              ? "long_break"
-              : "short_break";
-          setCurrentMode(nextMode);
+
+        const nextMode = getNextSessionType(
+          nextCount,
+          settingsRef.current.sessionsBeforeLongBreak
+        );
+        setCurrentMode(nextMode);
+
+        // Mark focus session as completed on server
+        await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" }).catch((err) =>
+          console.error("Failed to complete focus session:", err)
+        );
+
+        // If autoTransition is ON, start break smoothly without pause
+        if (isAuto) {
+          const breakDuration =
+            nextMode === "long_break"
+              ? settingsRef.current.longBreakMinutes * 60
+              : settingsRef.current.shortBreakMinutes * 60;
+
+          try {
+            await timerRef.current.startSession({
+              sessionType: nextMode,
+              plannedDurationSeconds: breakDuration,
+            });
+          } catch (err) {
+            console.error("Failed to auto-start break session:", err);
+          }
         }
       } else {
-        // Break completed
-        if (settings.autoTransition) {
-          setCurrentMode("focus");
+        // Break completed — transition back to focus
+        setCurrentMode("focus");
+
+        // Mark break session as completed on server
+        await fetch(`/api/sessions/${sessionId}/complete`, { method: "POST" }).catch((err) =>
+          console.error("Failed to complete break session:", err)
+        );
+
+        // If autoTransition is ON, start next focus session smoothly
+        if (isAuto) {
+          const focusDuration = settingsRef.current.focusDurationMinutes * 60;
+          try {
+            await timerRef.current.startSession({
+              sessionType: "focus",
+              label: labelRef.current || undefined,
+              plannedDurationSeconds: focusDuration,
+            });
+          } catch (err) {
+            console.error("Failed to auto-start focus session:", err);
+          }
         }
       }
     },
-    [settings, sessionCount]
+    []
   );
 
   const timer = useTimer({
@@ -98,6 +145,23 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
     soundVolume: settings.soundVolume,
     onSessionComplete: handleSessionComplete,
   });
+
+  const timerRef = useRef(timer);
+  useEffect(() => {
+    timerRef.current = timer;
+  });
+
+  const handleSkipBreak = useCallback(async () => {
+    await timer.completeSession();
+    setCurrentMode("focus");
+    if (settingsRef.current.autoTransition) {
+      await timer.startSession({
+        sessionType: "focus",
+        label: labelRef.current || undefined,
+        plannedDurationSeconds: settingsRef.current.focusDurationMinutes * 60,
+      });
+    }
+  }, [timer]);
 
   const displaySeconds = timer.activeSession ? timer.remaining : plannedSeconds;
   const displayProgress = timer.activeSession ? timer.progress : 0;
@@ -117,18 +181,17 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
     });
   }, [timer, currentMode, label, plannedSeconds]);
 
-  async function handleSaveSettings() {
-    setSavingSettings(true);
-    try {
-      await fetch("/api/settings/timer", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settings),
-      });
-    } finally {
-      setSavingSettings(false);
-      setShowSettings(false);
+  async function handleSaveSettings(newSettings: TimerSettings) {
+    const res = await fetch("/api/settings/timer", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newSettings),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      throw new Error(data?.error || "Failed to save timer settings");
     }
+    setSettings(newSettings);
   }
 
   // Request notification permission
@@ -145,6 +208,7 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
   // Keyboard shortcuts
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
+      if (showSettings) return;
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       if (e.code === "Space") {
         e.preventDefault();
@@ -155,7 +219,7 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [timer, handleStart]);
+  }, [timer, handleStart, showSettings]);
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -168,9 +232,11 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
           </p>
         </div>
         <button
-          onClick={() => setShowSettings(!showSettings)}
+          id="timer-settings-btn"
+          onClick={() => setShowSettings(true)}
           className="btn-ghost"
           aria-label="Timer settings"
+          title="Timer settings"
         >
           <Settings size={18} />
         </button>
@@ -352,7 +418,7 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
               {timer.activeSession.sessionType !== "focus" && (
                 <button
                   className="btn-ghost"
-                  onClick={() => timer.completeSession()}
+                  onClick={handleSkipBreak}
                   title="Skip break"
                 >
                   <SkipForward size={18} />
@@ -419,101 +485,12 @@ export default function FocusPageClient({ initialSettings }: FocusPageClientProp
         ))}
       </div>
 
-      {/* Settings panel */}
-      {showSettings && (
-        <div className="card animate-slide-in-up">
-          <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 20, color: "var(--text-primary)" }}>
-            Timer Settings
-          </h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <SettingSlider
-              label="Focus Duration"
-              value={settings.focusDurationMinutes}
-              min={1} max={120} step={1} unit="min"
-              onChange={(v) => setSettings((s) => ({ ...s, focusDurationMinutes: v }))}
-            />
-            <SettingSlider
-              label="Short Break"
-              value={settings.shortBreakMinutes}
-              min={1} max={30} step={1} unit="min"
-              onChange={(v) => setSettings((s) => ({ ...s, shortBreakMinutes: v }))}
-            />
-            <SettingSlider
-              label="Long Break"
-              value={settings.longBreakMinutes}
-              min={5} max={60} step={1} unit="min"
-              onChange={(v) => setSettings((s) => ({ ...s, longBreakMinutes: v }))}
-            />
-            <SettingSlider
-              label="Sessions before long break"
-              value={settings.sessionsBeforeLongBreak}
-              min={1} max={10} step={1} unit=""
-              onChange={(v) => setSettings((s) => ({ ...s, sessionsBeforeLongBreak: v }))}
-            />
-            <SettingSlider
-              label="Volume"
-              value={settings.soundVolume}
-              min={0} max={100} step={5} unit="%"
-              onChange={(v) => setSettings((s) => ({ ...s, soundVolume: v }))}
-            />
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 16, padding: "12px 0", borderTop: "1px solid var(--border)" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer", fontSize: 14, color: "var(--text-secondary)" }}>
-              <input
-                type="checkbox"
-                checked={settings.autoTransition}
-                onChange={(e) => setSettings((s) => ({ ...s, autoTransition: e.target.checked }))}
-                style={{ accentColor: "var(--brand-500)" }}
-              />
-              Auto-transition between sessions
-            </label>
-            <button
-              className="btn-primary"
-              onClick={handleSaveSettings}
-              disabled={savingSettings}
-              style={{ fontSize: 13, padding: "8px 16px" }}
-            >
-              {savingSettings ? "Saving…" : "Save"}
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SettingSlider({
-  label,
-  value,
-  min,
-  max,
-  step,
-  unit,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  unit: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <div className="form-group">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-        <label className="label" style={{ margin: 0 }}>{label}</label>
-        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-400)" }}>
-          {value}{unit}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min} max={max} step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        style={{ width: "100%", accentColor: "var(--brand-500)" }}
+      {/* Settings popup modal */}
+      <TimerSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={settings}
+        onSave={handleSaveSettings}
       />
     </div>
   );

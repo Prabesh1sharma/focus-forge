@@ -11,6 +11,7 @@ import InviteUserModal from "./InviteUserModal";
 import JoinRequestsPanel from "./JoinRequestsPanel";
 import LeaveRoomButton from "./LeaveRoomButton";
 import JoinRoomButton from "./JoinRoomButton";
+import RoomRecentActivity from "./RoomRecentActivity";
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -68,7 +69,7 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
   const memberUserIds = members.map((m) => m.userId);
 
   // Recent room sessions - all completed focus sessions by room members (regardless of roomId)
-  const recentSessions = memberUserIds.length > 0
+  const rawRecentSessions = memberUserIds.length > 0
     ? await db
         .select({
           id: focusSessions.id,
@@ -89,8 +90,19 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
           )
         )
         .orderBy(desc(focusSessions.startedAt))
-        .limit(15)
+        .limit(6)
     : [];
+
+  const initialHasMore = rawRecentSessions.length > 5;
+  const initialSessions = rawRecentSessions.slice(0, 5).map((s) => ({
+    id: s.id,
+    userId: s.userId,
+    label: s.label,
+    startedAt: s.startedAt.toISOString(),
+    actualFocusSeconds: s.actualFocusSeconds,
+    username: s.username,
+    displayName: s.displayName,
+  }));
 
   // Room total focus time - sum of all completed focus sessions by room members
   const [roomStats] = memberUserIds.length > 0
@@ -192,34 +204,12 @@ export default async function RoomPage({ params }: { params: Promise<{ slug: str
             <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-primary)", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
               <Activity size={15} /> Recent Activity
             </h2>
-            {recentSessions.length === 0 ? (
-              <div className="empty-state" style={{ padding: 32 }}>
-                <Timer size={28} color="var(--text-muted)" />
-                <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No sessions yet. Be the first to focus!</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {recentSessions.map((s) => (
-                  <Link key={s.id} href={`/u/${s.username}`} style={{ textDecoration: "none", color: "inherit" }}>
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid var(--border)" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--brand-800)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, color: "#fff" }}>
-                          {getInitials(s.displayName)}
-                        </div>
-                        <div>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{s.displayName}</span>
-                          {s.label && <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>· {s.label}</span>}
-                        </div>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: "var(--brand-400)" }}>{formatDuration(s.actualFocusSeconds)}</div>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{formatDate(s.startedAt, "MMM d")}</div>
-                      </div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
+            <RoomRecentActivity
+              roomId={room.id}
+              initialSessions={initialSessions}
+              initialHasMore={initialHasMore}
+              limit={5}
+            />
           </div>
 
           {/* Members */}

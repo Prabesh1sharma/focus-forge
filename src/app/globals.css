@@ -420,3 +420,30 @@ body {
   padding: 48px 24px;
   text-align: center;
 }
+
+/* ── Responsive Layout Navigation ──────────────────────────────────────────── */
+.mobile-bottom-nav {
+  display: flex;
+}
+
+@media (min-width: 768px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .sidebar-desktop {
+    display: none !important;
+  }
+}
+
+.app-main-content {
+  padding: 20px 16px 84px 16px;
+}
+
+@media (min-width: 768px) {
+  .app-main-content {
+    padding: 24px 32px;
+  }
+}

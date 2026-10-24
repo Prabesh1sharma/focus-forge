@@ -46,7 +46,7 @@ export default function Sidebar({ user }: SidebarProps) {
 
   return (
     <aside
-      className="hidden md:flex"
+      className="sidebar-desktop hidden md:flex"
       style={{
         width: 240,
         flexDirection: "column",

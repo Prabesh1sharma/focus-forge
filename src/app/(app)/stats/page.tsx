@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { getUserStats, getHeatmapData } from "@/lib/stats/calculations";
 import { formatDuration, formatDate } from "@/lib/utils";
 import HeatmapCalendar from "@/components/stats/HeatmapCalendar";
+import RecentSessionsList from "@/components/stats/RecentSessionsList";
 import { Timer, Flame, Target, TrendingUp, Calendar, Award } from "lucide-react";
 
 export const metadata = { title: "Statistics" };
@@ -22,11 +23,16 @@ export default async function StatsPage() {
 
   if (!user) redirect("/login");
 
-  const [stats, heatmapData, recentSessions] = await Promise.all([
+  const [stats, heatmapData, rawRecentSessions] = await Promise.all([
     getUserStats(user.id, user.timezone, user.dailyGoalMinutes),
     getHeatmapData(user.id, user.timezone),
     db
-      .select()
+      .select({
+        id: focusSessions.id,
+        label: focusSessions.label,
+        startedAt: focusSessions.startedAt,
+        actualFocusSeconds: focusSessions.actualFocusSeconds,
+      })
       .from(focusSessions)
       .where(
         and(
@@ -36,8 +42,16 @@ export default async function StatsPage() {
         )
       )
       .orderBy(desc(focusSessions.startedAt))
-      .limit(20),
+      .limit(6),
   ]);
+
+  const initialHasMore = rawRecentSessions.length > 5;
+  const initialSessions = rawRecentSessions.slice(0, 5).map((s) => ({
+    id: s.id,
+    label: s.label,
+    startedAt: s.startedAt.toISOString(),
+    actualFocusSeconds: s.actualFocusSeconds,
+  }));
 
   const goalProgress = Math.min(
     100,
@@ -116,38 +130,11 @@ export default async function StatsPage() {
         <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--text-primary)", marginBottom: 16 }}>
           Recent Sessions
         </h2>
-        {recentSessions.length === 0 ? (
-          <div className="empty-state">
-            <Timer size={32} color="var(--text-muted)" />
-            <p style={{ color: "var(--text-muted)", fontSize: 14 }}>No completed sessions yet. Start your first focus session!</p>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {recentSessions.map((s) => (
-              <div
-                key={s.id}
-                style={{
-                  display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "10px 0", borderBottom: "1px solid var(--border)",
-                }}
-              >
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 500, color: "var(--text-primary)" }}>
-                    {s.label || "Focus Session"}
-                  </div>
-                  <div style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                    {formatDate(s.startedAt)}
-                  </div>
-                </div>
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: "var(--brand-400)" }}>
-                    {formatDuration(s.actualFocusSeconds)}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <RecentSessionsList
+          initialSessions={initialSessions}
+          initialHasMore={initialHasMore}
+          limit={5}
+        />
       </div>
     </div>
   );
