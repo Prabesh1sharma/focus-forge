@@ -525,17 +525,22 @@ export default function DistractionBlockingSection() {
               </div>
               <button
                 type="button"
-                onClick={() => copyToClipboard(pairingCode)}
+                onClick={() => {
+                  const url = typeof window !== "undefined" ? window.location.origin : "";
+                  copyToClipboard(url ? `${pairingCode}@${url}` : pairingCode);
+                }}
                 className="btn-secondary"
-                style={{ padding: "12px 16px" }}
+                style={{ padding: "12px 16px", fontSize: 12 }}
+                title="Copies code with current server URL for instant 1-click pairing"
               >
                 {codeCopied ? <Check size={16} /> : <Copy size={16} />}
-                {codeCopied ? "Copied" : "Copy"}
+                {codeCopied ? "Copied" : "Copy Code"}
               </button>
             </div>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "10px 0 0" }}>
-              Open the FocusForge Chrome extension popup and paste this code to securely pair.
-            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 11, color: "var(--text-muted)", marginTop: 10 }}>
+              <span>Server: <code style={{ color: "var(--brand-400)" }}>{typeof window !== "undefined" ? window.location.origin : ""}</code></span>
+              <span>Paste into the extension popup to connect.</span>
+            </div>
           </div>
         ) : (
           <button

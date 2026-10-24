@@ -1,8 +1,9 @@
 import { ExtensionStorage } from "./types";
+import { DEFAULT_API_URL } from "./config";
 
 export const DEFAULT_STORAGE: ExtensionStorage = {
   token: null,
-  apiUrl: "http://localhost:3000",
+  apiUrl: DEFAULT_API_URL,
   user: null,
   distractionSettings: null,
   blockedDomains: [],

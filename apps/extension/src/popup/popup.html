@@ -17,9 +17,14 @@
           <p class="brand-subtitle">Distraction Blocker</p>
         </div>
       </div>
-      <div id="connectionPill" class="status-pill status-disconnected">
-        <span class="status-dot"></span>
-        <span id="connectionText">Checking...</span>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <div id="connectionPill" class="status-pill status-disconnected">
+          <span class="status-dot"></span>
+          <span id="connectionText">Checking...</span>
+        </div>
+        <button id="openOptionsBtn" class="btn btn-ghost" title="Extension Settings" style="padding: 4px 6px; font-size: 14px;">
+          ⚙️
+        </button>
       </div>
     </header>
 
@@ -44,8 +49,8 @@
               type="text"
               id="pairingCodeInput"
               class="input code-input"
-              placeholder="e.g. 7K9M2P"
-              maxlength="10"
+              placeholder="e.g. 7K9M2P or paste code@url"
+              maxlength="120"
               autocomplete="off"
               spellcheck="false"
               required

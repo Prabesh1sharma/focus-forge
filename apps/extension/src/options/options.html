@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FocusForge Extension Settings</title>
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+  <div class="options-container">
+    <header class="options-header">
+      <div class="logo">🛡️</div>
+      <div>
+        <h1>FocusForge Blocker Settings</h1>
+        <p class="subtitle">Configure server connection and extension preferences</p>
+      </div>
+    </header>
+
+    <div class="card">
+      <h2>Server Configuration</h2>
+      <p class="desc">
+        Specify the FocusForge web application URL. The extension will pair and synchronize focus sessions with this instance.
+      </p>
+
+      <div class="form-group">
+        <label for="apiUrlInput">FocusForge API URL</label>
+        <div class="input-with-button">
+          <input
+            type="url"
+            id="apiUrlInput"
+            class="input"
+            placeholder="https://focusforge.app or http://localhost:3000"
+            required
+          />
+          <button type="button" id="testBtn" class="btn btn-secondary">
+            Test Connection
+          </button>
+        </div>
+        <div id="testResult" class="test-result hidden"></div>
+      </div>
+
+      <div class="presets-section">
+        <span class="presets-label">Quick Presets:</span>
+        <div class="presets-buttons">
+          <button type="button" class="preset-btn" data-url="https://focus-forge-alpha-three.vercel.app">
+            🚀 Production (Vercel)
+          </button>
+          <button type="button" class="preset-btn" data-url="http://localhost:3000">
+            💻 Localhost (3000)
+          </button>
+        </div>
+      </div>
+
+      <div class="card-footer">
+        <button type="button" id="saveBtn" class="btn btn-primary">
+          Save Settings
+        </button>
+        <span id="saveStatus" class="save-status hidden">✓ Saved successfully</span>
+      </div>
+    </div>
+
+    <!-- Account Status Card -->
+    <div class="card mt-4">
+      <h2>Connection Status</h2>
+      <div id="accountStatusContent">
+        <p class="desc">Checking current pairing state...</p>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="options.ts"></script>
+</body>
+</html>

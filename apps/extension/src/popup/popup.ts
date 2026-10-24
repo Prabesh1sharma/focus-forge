@@ -188,11 +188,56 @@ async function refreshState() {
 
 // ─── Event Handlers ───────────────────────────────────────────────────────────
 
+const openOptionsBtn = document.getElementById("openOptionsBtn");
+if (openOptionsBtn) {
+  openOptionsBtn.addEventListener("click", () => {
+    if (chrome.runtime?.openOptionsPage) {
+      chrome.runtime.openOptionsPage();
+    } else {
+      window.open("options.html");
+    }
+  });
+}
+
+// Auto-parse CODE@URL format if pasted
+pairingCodeInput.addEventListener("input", () => {
+  const val = pairingCodeInput.value.trim();
+  if (val.includes("@")) {
+    const [c, url] = val.split("@");
+    pairingCodeInput.value = c.trim().toUpperCase();
+    if (url && (url.startsWith("http://") || url.startsWith("https://"))) {
+      apiUrlInput.value = url.trim().replace(/\/+$/, "");
+    }
+  }
+});
+
+// Auto-detect URL from active FocusForge browser tab
+if (typeof chrome !== "undefined" && chrome.tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const activeUrl = tabs?.[0]?.url;
+    if (activeUrl && (activeUrl.startsWith("http://") || activeUrl.startsWith("https://"))) {
+      try {
+        const parsed = new URL(activeUrl);
+        // If user is on a FocusForge page (e.g. /settings or /focus), suggest or auto-set origin
+        if (activeUrl.includes("/settings") || activeUrl.includes("/focus") || activeUrl.includes("/dashboard")) {
+          apiUrlInput.value = parsed.origin;
+        }
+      } catch {}
+    }
+  });
+}
+
 // Form submission for Pairing
 pairingForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  const code = pairingCodeInput.value.trim().toUpperCase();
-  const apiUrl = apiUrlInput.value.trim() || "http://localhost:3000";
+  let code = pairingCodeInput.value.trim().toUpperCase();
+  let apiUrl = apiUrlInput.value.trim() || "http://localhost:3000";
+
+  if (code.includes("@")) {
+    const [c, url] = code.split("@");
+    code = c.trim().toUpperCase();
+    if (url) apiUrl = url.trim();
+  }
 
   if (!code) return;
 
