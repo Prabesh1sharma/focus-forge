@@ -31,6 +31,8 @@ import { POST as pairHandler } from "@/app/api/extension/pair/route";
 import { GET as syncHandler } from "@/app/api/extension/sync/route";
 import { POST as addDomainHandler } from "@/app/api/settings/distraction/domains/route";
 import { POST as pairingCodeHandler } from "@/app/api/extension/pairing-code/route";
+import { GET as statsSessionsHandler } from "@/app/api/stats/sessions/route";
+import { GET as roomSessionsHandler } from "@/app/api/rooms/[id]/sessions/route";
 
 describe("Extension Pairing & Sync API Endpoints", () => {
   beforeEach(() => {
@@ -129,6 +131,22 @@ describe("Extension Pairing & Sync API Endpoints", () => {
   it("rejects pairing code generation if not authenticated", async () => {
     mockSessionUser = null;
     const res = await pairingCodeHandler();
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects stats sessions query if not authenticated", async () => {
+    mockSessionUser = null;
+    const req = new NextRequest("http://localhost:3000/api/stats/sessions?page=1&limit=5");
+    const res = await statsSessionsHandler(req);
+    expect(res.status).toBe(401);
+  });
+
+  it("rejects room sessions query if not authenticated", async () => {
+    mockSessionUser = null;
+    const req = new NextRequest("http://localhost:3000/api/rooms/room-123/sessions?page=1&limit=5");
+    const res = await roomSessionsHandler(req, {
+      params: Promise.resolve({ id: "room-123" }),
+    });
     expect(res.status).toBe(401);
   });
 });
